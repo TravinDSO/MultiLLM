@@ -5,13 +5,13 @@ from llm_manager import LLMManager
 from logger import Logger
 import json
 
-app = Flask(__name__)
-app.secret_key = 'your_secret_key'  # Replace with a real secret key
-llm_manager = LLMManager()
-llm_logger = Logger()
-
 #load the env file
 load_dotenv('environment.env', override=True)
+
+app = Flask(__name__)
+app.secret_key = os.getenv('SECRET_KEY')
+llm_manager = LLMManager()
+llm_logger = Logger()
 
 def load_users():
     with open('users.json') as f:
