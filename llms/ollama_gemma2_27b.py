@@ -7,19 +7,24 @@ class Gemma2_27b():
         self.headers = {
             'Content-Type': 'application/json'
         }
-        self.conversation_history = []
+        self.conversation_history = {}
         self.info_link = 'https://developers.googleblog.com/en/gemma-family-and-toolkit-expansion-io-2024/'
 
-    def generate(self, prompt, options=None, stream=False):
+    def generate(self, user, prompt, options=None, stream=False):
+
+        # Check if the user has a conversation history and create one if not
+        if user not in self.conversation_history:
+            self.conversation_history[user] = []
+
         # Append the new user prompt to the conversation history
-        self.conversation_history.append({
+        self.conversation_history[user].append({
             'role': 'user',
             'content': prompt
         })
         
         payload = {
             'model': self.model,
-            'messages': self.conversation_history,  # Use the conversation history
+            'messages': self.conversation_history[user],  # Use the conversation history
             'stream': stream
         }
         
@@ -43,7 +48,7 @@ class Gemma2_27b():
                 parsed_response = response.json()
                 assistant_message = parsed_response['message']['content']
                 # Append the assistant's response to the conversation history
-                self.conversation_history.append({
+                self.conversation_history[user].append({
                     'role': 'assistant',
                     'content': assistant_message
                 })
@@ -51,8 +56,8 @@ class Gemma2_27b():
             else:
                 response.raise_for_status()
 
-    def clear_conversation(self):
-        self.conversation_history = []
+    def clear_conversation(self,user):
+        self.conversation_history[user] = []
         return "Conversation cleared."
 
 # Test Cell
