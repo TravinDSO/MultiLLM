@@ -1,10 +1,15 @@
+import os
+from dotenv import load_dotenv
 from flask import Flask, render_template, request, jsonify, session, redirect, url_for
 from llm_manager import LLMManager
 from logger import Logger
 import json
 
+#load the env file
+load_dotenv('environment.env', override=True)
+
 app = Flask(__name__)
-app.secret_key = 'your_secret_key'  # Replace with a real secret key
+app.secret_key = os.getenv('SECRET_KEY')
 llm_manager = LLMManager()
 llm_logger = Logger()
 
@@ -81,5 +86,11 @@ def clear_thread():
         return jsonify({'status': 'error', 'message': 'Error clearing thread'}), 500
 
 if __name__ == '__main__':
-    # Start the Flask app on IP 192.168.1.42 port 7860
-    app.run(host='192.168.1.42', port=7860)
+    
+    APP_IP = os.getenv('APP_IP')
+    APP_PORT = os.getenv('APP_PORT')
+
+    if APP_IP is not None and APP_PORT is not None:
+        app.run(host=APP_IP, port=APP_PORT)
+    else:
+        app.run()
