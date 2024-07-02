@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multi-LLM</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</head>
+<body>
+    <div id="header" class="header-container hidden">
+        <h1>Multi-LLM [ {{username}} ]</h1>
+        <button id="logout-button" onclick="logout()">Logout</button>
+    </div>
+
+    <div id="main-content">
+        <div id="login-form" class="login-form">
+            <h2>Login</h2>
+            <input type="text" id="username" placeholder="Username" required>
+            <input type="password" id="password" placeholder="Password" required>
+            <button onclick="login()">Login</button>
+            <div id="login-error" class="error"></div>
+        </div>
+
+        <div id="app-content" class="hidden">
+            <div class="llm-toggles">
+                {% for llm in llms %}
+                <label>
+                    <input type="checkbox" onclick="toggleLLM('{{ llm }}')">
+                    Enable {{ llm }}
+                    <div class="spinner" id="{{ llm }}-spinner-toggle"></div>
+                </label>
+                {% endfor %}
+            </div>
+            <div class="container">
+                {% for llm in llms %}
+                <div id="{{ llm }}-block" class="llm-block hidden">
+                    <div class="header">
+                        {% set llm_link = llm_links[llm] %}
+                        <span id="{{ llm }}-name"><a href="{{llm_link}}" target="_blank">{{ llm }}</a></span>
+                        <div class="spinner" id="{{ llm }}-spinner"></div>
+                        <div class="timer" id="{{ llm }}-timer">0.000s</div>
+                        <div>
+                            <button onclick="generateResponse('{{ llm }}')">Submit</button>
+                            <button onclick="confirmNewThread('{{ llm }}')">New</button>
+                        </div>
+                    </div>
+                    <textarea id="{{ llm }}-input" class="prompt"></textarea>
+                    <div id="{{ llm }}-output" class="response"></div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</body>
+</html>
