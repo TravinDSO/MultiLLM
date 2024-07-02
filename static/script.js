@@ -115,14 +115,15 @@ function generateResponse(llm) {
         const userPrompt = document.createElement('div');
         userPrompt.innerHTML = `<strong>User:</strong> ${input.replace(/\n/g, '<br>')} <br><br>`;
         
-        const llmResponse = document.createElement('div');
-        llmResponse.innerHTML = `<strong>${llm} (${elapsedTime.toFixed(3)}s):</strong> ${data.response.replace(/\n/g, '<br>')}`;
+        const llmResponse = document.createElement('pre');
+        llmResponse.innerHTML = `<code><strong>${llm} (${elapsedTime.toFixed(3)}s):</strong><br>${data.response.replace(/\n/g, '<br>')}</code>`;
 
         const hr = document.createElement('hr');
 
-        outputDiv.prepend(hr);
-        outputDiv.prepend(llmResponse);
-        outputDiv.prepend(userPrompt);
+        outputDiv.innerHTML = ''; // Clear previous content
+        outputDiv.appendChild(hr);
+        outputDiv.appendChild(userPrompt);
+        outputDiv.appendChild(llmResponse);
 
         spinner.style.visibility = 'hidden';
         toggleSpinner.style.visibility = 'hidden';
@@ -140,6 +141,7 @@ function generateResponse(llm) {
         clearInterval(timerInterval);
     });
 }
+
 
 // Function to confirm starting a new thread
 function confirmNewThread(llm) {

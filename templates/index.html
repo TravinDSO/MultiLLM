@@ -10,7 +10,7 @@
 <body>
     <div id="header" class="header-container hidden">
         <h1>Multi-LLM [ {{username}} ]</h1><br>
-        <i>Note: Local models should not be querried at the same time in order to conserve GPU resources.</i>
+        <i>Note: Local models should not be queried at the same time in order to conserve GPU resources.</i>
         <button id="logout-button" onclick="logout()">Logout</button>
     </div>
 
@@ -47,11 +47,12 @@
                         </div>
                     </div>
                     <textarea id="{{ llm }}-input" class="prompt"></textarea>
-                    <div id="{{ llm }}-output" class="response"></div>
+                    <pre><code id="{{ llm }}-output" class="response"></code></pre>
                 </div>
                 {% endfor %}
             </div>
         </div>
+        
     </div>
 </body>
 </html>

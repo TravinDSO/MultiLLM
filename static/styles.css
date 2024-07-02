@@ -175,3 +175,19 @@ a:hover, a:active {
     color: red;
     margin-top: 10px;
 }
+
+pre {
+    background-color: #2e2e2e;
+    color: #ffffff;
+    padding: 10px;
+    overflow: auto;
+    white-space: pre-wrap; /* Ensures line breaks are preserved */
+    margin: 20px 0;
+    border-radius: 5px;
+    border: 1px solid #555;
+}
+
+code {
+    font-family: "Courier New", Courier, monospace;
+    font-size: 14px;
+}
