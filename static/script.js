@@ -112,18 +112,23 @@ function generateResponse(llm) {
         clearInterval(timerInterval);
         let elapsedTime = (new Date() - startTime) / 1000;
         
-        const userPrompt = document.createElement('div');
-        userPrompt.innerHTML = `<strong>User:</strong> ${input.replace(/\n/g, '<br>')} <br><br>`;
-        
-        const llmResponse = document.createElement('pre');
-        llmResponse.innerHTML = `<code><strong>${llm} (${elapsedTime.toFixed(3)}s):</strong><br>${data.response.replace(/\n/g, '<br>')}</code>`;
+        // Process the response and separate code blocks from plain text
+        const parts = data.response.split(/(```[\s\S]*?```)/g); // Split by code blocks
+        let formattedResponse = '';
 
-        const hr = document.createElement('hr');
+        parts.forEach(part => {
+            if (part.startsWith('```') && part.endsWith('```')) {
+                const codeBlock = part.slice(3, -3).replace(/\n/g, '<br>');
+                formattedResponse += `<pre><code>${codeBlock}</code></pre>`;
+            } else {
+                formattedResponse += part.replace(/\n/g, '<br>');
+            }
+        });
 
-        outputDiv.innerHTML = ''; // Clear previous content
-        outputDiv.appendChild(hr);
-        outputDiv.appendChild(userPrompt);
-        outputDiv.appendChild(llmResponse);
+        const userPrompt = `<strong>User:</strong> ${input.replace(/\n/g, '<br>')}<br><br>`;
+        const llmResponse = `<strong>${llm} (${elapsedTime.toFixed(3)}s):</strong><br>${formattedResponse}<br>`;
+
+        outputDiv.innerHTML = `<hr>${userPrompt}${llmResponse}`;
 
         spinner.style.visibility = 'hidden';
         toggleSpinner.style.visibility = 'hidden';
@@ -131,9 +136,8 @@ function generateResponse(llm) {
     })
     .catch((error) => {
         console.error('Error:', error);
-        const errorResponse = document.createElement('div');
-        errorResponse.textContent = 'An error occurred';
-        outputDiv.prepend(errorResponse);
+        const errorResponse = 'An error occurred';
+        outputDiv.innerHTML = `<hr><div>${errorResponse}</div>`;
 
         spinner.style.visibility = 'hidden';
         toggleSpinner.style.visibility = 'hidden';
