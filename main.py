@@ -73,6 +73,18 @@ def generate():
     else:
         return jsonify({'error': 'LLM not found'}), 404
 
+@app.route('/get_thread', methods=['POST'])
+def get_thread():
+    data = request.get_json()
+    llm_name = data['llm']
+    user = session['username']
+    try:
+        llm = llm_manager.get_llm(llm_name)
+        thread = llm.get_conversation(user)
+        return jsonify({'thread': thread}), 200
+    except:
+        return jsonify({'status': 'error', 'message': 'Error getting thread'}), 500
+
 @app.route('/clear_thread', methods=['POST'])
 def clear_thread():
     data = request.get_json()

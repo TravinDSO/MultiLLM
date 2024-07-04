@@ -52,6 +52,9 @@ class Claude35():
         else:
             response.raise_for_status()
 
+    def get_conversation(self, user):
+        return self.conversation_history[user]
+
     def clear_conversation(self, user):
         self.conversation_history[user] = []
         return "Conversation cleared."

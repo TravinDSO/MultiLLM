@@ -80,6 +80,42 @@ function adjustLayout() {
     }
 }
 
+// Function to fill each LLM outputDiv with historical messages after page load
+function fillHistoricalMessages(llm) {
+    const outputDiv = document.getElementById(`${llm}-output`);
+
+    fetch('/get_thread', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ llm: llm }),
+    })
+    .then(response => response.json())
+    .then(data => {
+        // // Separate user prompts and LLM responses
+        // const messages = data.response.JSON;
+        // let userMessages = [];
+        // let assistantMessages = [];
+
+        // messages.forEach(message => {
+        //     if (message.role === 'user') {
+        //         userMessages.push(message.content);
+        //     } else if (message.role === 'assistant') {
+        //         assistantMessages.push(message.content);
+        //     }
+        // });
+
+        assistantMessages = data.response;
+
+        const llmResponse = `<strong>${llm}:</strong><br>${assistantMessages}<br>`;
+        outputDiv.innerHTML = `<hr>${llmResponse}`;
+    })
+    .catch((error) => {
+        console.error('Error:', error);
+    });
+}
+
 // Function to generate response from LLM
 function generateResponse(llm) {
     const input = document.getElementById(`${llm}-input`).value;
@@ -128,7 +164,7 @@ function generateResponse(llm) {
         const userPrompt = `<strong>User:</strong> ${input.replace(/\n/g, '<br>')}<br><br>`;
         const llmResponse = `<strong>${llm} (${elapsedTime.toFixed(3)}s):</strong><br>${formattedResponse}<br>`;
 
-        outputDiv.innerHTML = `<hr>${userPrompt}${llmResponse}`;
+        outputDiv.innerHTML = `<hr>${userPrompt}${llmResponse}` + outputDiv.innerHTML;
 
         spinner.style.visibility = 'hidden';
         toggleSpinner.style.visibility = 'hidden';
@@ -137,7 +173,7 @@ function generateResponse(llm) {
     .catch((error) => {
         console.error('Error:', error);
         const errorResponse = 'An error occurred';
-        outputDiv.innerHTML = `<hr><div>${errorResponse}</div>`;
+        outputDiv.innerHTML = `<hr><div>${errorResponse}</div>` + outputDiv.innerHTML;
 
         spinner.style.visibility = 'hidden';
         toggleSpinner.style.visibility = 'hidden';
@@ -177,6 +213,11 @@ function clearThread(llm) {
 
 // Function to toggle LLM visibility
 function toggleLLM(llm) {
+    // Check if the block is being unhidden and fill historical messages if necessary
+    if (document.getElementById(llm + '-block').classList.contains('hidden')) {
+        //fillHistoricalMessages(llm);
+    }
+
     var llmBlock = document.getElementById(llm + '-block');
     llmBlock.classList.toggle('hidden');
     adjustLayout();
