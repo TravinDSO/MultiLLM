@@ -1,16 +1,16 @@
 import requests
 
 class Claude35():
-    def __init__(self, api_key, api_base_url='https://api.anthropic.com'):
+    def __init__(self, api_key, api_base_url='https://api.anthropic.com', model='claude-3-5-sonnet-20240620',info_link='https://www.anthropic.com/news/claude-3-5-sonnet'):
         self.api_base_url = api_base_url
-        self.model = 'claude-3-5-sonnet-20240620'
+        self.model = model
         self.headers = {
             'Content-Type': 'application/json',
             'x-api-key': api_key,
             'anthropic-version': '2023-06-01'
         }
         self.conversation_history = {}
-        self.info_link = 'https://www.anthropic.com/news/claude-3-5-sonnet'
+        self.info_link = info_link
 
     def generate(self, user, prompt, max_tokens=2000, stop_sequences=None, temperature=1.0):
         
@@ -52,10 +52,17 @@ class Claude35():
         else:
             response.raise_for_status()
 
-    def get_conversation(self, user):
-        return self.conversation_history[user]
+    def summarize_conversation(self, user):
+        # Check if the user has a conversation history and create one if not
+        if user not in self.conversation_history:
+            # Short-circuit if the user has no conversation history and return a message informing them of this
+            self.conversation_history[user] = []
+            return "No conversation history found."
+        
+        prompt = 'Summarize the current conversation. If code was generated, preserve it, presenting the most complete version to the user.'
+        return self.generate(user, prompt)
 
-    def clear_conversation(self, user):
+    def clear_conversation(self,user):
         self.conversation_history[user] = []
         return "Conversation cleared."
 
@@ -76,14 +83,14 @@ if __name__ == '__main__':
         print(f'Class Error: {e}')
 
     try:
-        response = claude.generate('1+1?')
+        response = claude.generate('user','1+1?')
         print(response)
-        response = claude.generate('Why?')
+        response = claude.generate('user','Why?')
         print(response)
-        response = claude.generate('What was the original question?')
+        response = claude.generate('user','What was the original question?')
         print(response)
-        response = claude.clear_conversation()
-        response = claude.generate('What was the original question?')
+        response = claude.clear_conversation('user')
+        response = claude.generate('user','What was the original question?')
         print(response)
     except Exception as e:
         print(f'Runup Error:{e}')

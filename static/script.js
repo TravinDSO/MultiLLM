@@ -81,38 +81,60 @@ function adjustLayout() {
 }
 
 // Function to fill each LLM outputDiv with historical messages after page load
-function fillHistoricalMessages(llm) {
+function summarizeThread(llm) {
     const outputDiv = document.getElementById(`${llm}-output`);
+    const spinner = document.getElementById(`${llm}-spinner`);
+    const toggleSpinner = document.getElementById(`${llm}-spinner-toggle`);
+    const timer = document.getElementById(`${llm}-timer`);
+    
+    let startTime = new Date();
+    let timerInterval;
 
-    fetch('/get_thread', {
+    spinner.style.visibility = 'visible';
+    toggleSpinner.style.visibility = 'visible';
+    timer.style.display = 'inline-block';
+    timerInterval = setInterval(() => {
+        let elapsedTime = new Date() - startTime;
+        let seconds = (elapsedTime / 1000).toFixed(3);
+        timer.textContent = `${seconds}s`;
+    }, 10);
+
+    fetch('/summarize_thread', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
         },
         body: JSON.stringify({ llm: llm }),
     })
-    .then(response => response.json())
+    .then(thread => thread.json())
     .then(data => {
-        // // Separate user prompts and LLM responses
-        // const messages = data.response.JSON;
-        // let userMessages = [];
-        // let assistantMessages = [];
+        // Process the thread and separate code blocks from plain text
+        const parts = data.thread.split(/(```[\s\S]*?```)/g); // Split by code blocks
+        let formattedThread = '';
 
-        // messages.forEach(message => {
-        //     if (message.role === 'user') {
-        //         userMessages.push(message.content);
-        //     } else if (message.role === 'assistant') {
-        //         assistantMessages.push(message.content);
-        //     }
-        // });
+        parts.forEach(part => {
+            if (part.startsWith('```') && part.endsWith('```')) {
+                const codeBlock = part.slice(3, -3).replace(/\n/g, '<br>');
+                formattedThread += `<pre><code>${codeBlock}</code></pre>`;
+            } else {
+                formattedThread += part.replace(/\n/g, '<br>');
+            }
+        });
 
-        assistantMessages = data.response;
+        const llmResponse = `<strong>${llm}:</strong><br>${formattedThread}<br>`;
+        outputDiv.innerHTML = `${llmResponse}`;
 
-        const llmResponse = `<strong>${llm}:</strong><br>${assistantMessages}<br>`;
-        outputDiv.innerHTML = `<hr>${llmResponse}`;
+        spinner.style.visibility = 'hidden';
+        toggleSpinner.style.visibility = 'hidden';
+        timer.style.display = 'none';
+
     })
     .catch((error) => {
         console.error('Error:', error);
+        spinner.style.visibility = 'hidden';
+        toggleSpinner.style.visibility = 'hidden';
+        timer.style.display = 'none';
+        clearInterval(timerInterval);
     });
 }
 
@@ -190,6 +212,13 @@ function confirmNewThread(llm) {
     }
 }
 
+// Function to confirm summarizing LLM historical messages
+function confirmSummarize(llm) {
+    if (confirm('Are you sure you want to summarize historical responses? This will clear all previous messages.')) {
+        summarizeThread(llm);
+    }
+}
+
 // Function to clear thread
 function clearThread(llm) {
     document.getElementById(`${llm}-input`).value = '';
@@ -213,11 +242,6 @@ function clearThread(llm) {
 
 // Function to toggle LLM visibility
 function toggleLLM(llm) {
-    // Check if the block is being unhidden and fill historical messages if necessary
-    if (document.getElementById(llm + '-block').classList.contains('hidden')) {
-        //fillHistoricalMessages(llm);
-    }
-
     var llmBlock = document.getElementById(llm + '-block');
     llmBlock.classList.toggle('hidden');
     adjustLayout();

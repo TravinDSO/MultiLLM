@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Multi-LLM</title>
+    <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/x-icon">
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
     <script src="{{ url_for('static', filename='script.js') }}"></script>
 </head>
@@ -42,6 +43,7 @@
                         <div class="spinner" id="{{ llm }}-spinner"></div>
                         <div class="timer" id="{{ llm }}-timer">0.000s</div>
                         <div>
+                            <button onclick="confirmSummarize('{{ llm }}')">Summarize LLM responses</button>
                             <button onclick="generateResponse('{{ llm }}')">Submit</button>
                             <button onclick="confirmNewThread('{{ llm }}')">New</button>
                         </div>

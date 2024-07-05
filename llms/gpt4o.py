@@ -2,12 +2,12 @@ import openai
 import time
 
 class GPT4o():
-    def __init__(self, api_key,assistant_id):
+    def __init__(self, api_key,assistant_id,model='gpt-4.0',info_link='https://openai.com/index/hello-gpt-4o/'):
         self.client = openai.Client()
         self.client.api_key = api_key
         self.openai_assistant_id = assistant_id
         self.openai_assistant_thread = {}
-        self.info_link = 'https://openai.com/index/hello-gpt-4o/'
+        self.info_link = info_link
 
     def generate(self, user, prompt):
         # Check if the user has an openai assistant thread and create one if not
@@ -44,6 +44,10 @@ class GPT4o():
             response = response.data[0].content[0].text.value
 
         return response
+    
+    def summarize_conversation(self, user):       
+        prompt = 'Summarize the current conversation. If code was generated, preserve it, presenting the most complete version to the user.'
+        return self.generate(user, prompt)
 
     def clear_conversation(self,user):
         self.client.beta.threads.delete(thread_id=self.openai_assistant_thread[user].id)

@@ -1,14 +1,14 @@
 import requests
 
-class Codelamma_34b():
-    def __init__(self, api_base_url='http://localhost:11434'):
+class OllamaModel():
+    def __init__(self, api_base_url='http://localhost:11434',model = 'llama3', info_link='https://ollama.com/library'):
         self.api_base_url = api_base_url
-        self.model = 'codellama:34b'
+        self.model = model
         self.headers = {
             'Content-Type': 'application/json'
         }
         self.conversation_history = {}
-        self.info_link = 'https://ollama.com/library/codellama:34b'
+        self.info_link = info_link
 
     def generate(self, user, prompt, options=None, stream=False):
 
@@ -56,8 +56,15 @@ class Codelamma_34b():
             else:
                 response.raise_for_status()
 
-    def get_conversation(self, user):
-        return self.conversation_history[user]
+    def summarize_conversation(self, user):
+        # Check if the user has a conversation history and create one if not
+        if user not in self.conversation_history:
+            # Short-circuit if the user has no conversation history and return a message informing them of this
+            self.conversation_history[user] = []
+            return "No conversation history found."
+        
+        prompt = 'Summarize the current conversation. If code was generated, preserve it, presenting the most complete version to the user.'
+        return self.generate(user, prompt)
 
     def clear_conversation(self,user):
         self.conversation_history[user] = []
@@ -65,20 +72,20 @@ class Codelamma_34b():
 
 # Test Cell
 # Please do not modify
-# The following test cell is used to test the implementation of the `Gemma2` class to ensure it works as expected.
+# The following test cell is used to test the implementation of the `OllamaModel` class to ensure it works as expected.
 
 # Verify the file is being run directly
 if __name__ == '__main__':
     try:
-        gemma2 = Codelamma_34b()
-        response = gemma2.generate('1+1?')
+        ollama_test = OllamaModel()
+        response = ollama_test.generate('1+1?')
         print(response)
-        response = gemma2.generate('Why?')
+        response = ollama_test.generate('Why?')
         print(response)
-        response = gemma2.generate('What was the original question?')
+        response = ollama_test.generate('What was the original question?')
         print(response)
-        response = gemma2.clear_conversation()
-        response = gemma2.generate('What was the original question?')
+        response = ollama_test.clear_conversation()
+        response = ollama_test.generate('What was the original question?')
         print(response)
     except Exception as e:
         print(e)
