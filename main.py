@@ -66,7 +66,7 @@ def generate():
     if llm:
         try:
             response = llm.generate(user,prompt)
-            llm_logger.log(ip_address, llm_name, prompt, response)
+            llm_logger.log(ip_address, user, llm_name, prompt, response)
             return jsonify({'response': response})
         except Exception as e:
             return jsonify({'error': str(e)}), 500
@@ -84,6 +84,18 @@ def summarize_thread():
         return jsonify({'thread': thread}), 200
     except:
         return jsonify({'status': 'error', 'message': 'Error getting thread'}), 500
+
+@app.route('/check_conversation', methods=['POST'])
+def check_conversation():
+    data = request.get_json()
+    llm_name = data['llm']
+    user = session['username']
+    try:
+        llm = llm_manager.get_llm(llm_name)
+        has_conversation = llm.check_for_previous_conversation(user)
+        return jsonify({'has_conversation': has_conversation}), 200
+    except:
+        return jsonify({'status': 'error', 'message': 'Error checking conversation'}), 500
 
 @app.route('/clear_thread', methods=['POST'])
 def clear_thread():

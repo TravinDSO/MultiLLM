@@ -66,6 +66,11 @@ class OllamaModel():
         prompt = 'Summarize the current conversation. If code was generated, preserve it, presenting the most complete version to the user.'
         return self.generate(user, prompt)
 
+    def check_for_previous_conversation(self, user):
+        # Check if the user has actual conversation history in self.conversation_history
+        if user in self.conversation_history and len(self.conversation_history[user]) > 1:
+            return True
+
     def clear_conversation(self,user):
         self.conversation_history[user] = []
         return "Conversation cleared."

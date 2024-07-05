@@ -8,6 +8,7 @@ class GPT4o():
         self.openai_assistant_id = assistant_id
         self.openai_assistant_thread = {}
         self.info_link = info_link
+        self.number_of_responses = 0
 
     def generate(self, user, prompt):
         # Check if the user has an openai assistant thread and create one if not
@@ -42,9 +43,17 @@ class GPT4o():
                 thread_id=self.openai_assistant_thread[user].id
             )
             response = response.data[0].content[0].text.value
+            self.number_of_responses += 1
 
         return response
-    
+
+    def check_for_previous_conversation(self, user):
+        # Check if the user has actual conversation history in self.number_of_responses
+        if user in self.openai_assistant_thread and self.number_of_responses > 0:
+            return True
+        else:
+            return False
+
     def summarize_conversation(self, user):       
         prompt = 'Summarize the current conversation. If code was generated, preserve it, presenting the most complete version to the user.'
         return self.generate(user, prompt)
@@ -52,6 +61,7 @@ class GPT4o():
     def clear_conversation(self,user):
         self.client.beta.threads.delete(thread_id=self.openai_assistant_thread[user].id)
         self.openai_assistant_thread[user] = self.client.beta.threads.create()
+        self.number_of_responses = 0
         return "Conversation cleared."
     
 # Test Cell

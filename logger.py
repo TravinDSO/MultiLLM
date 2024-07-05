@@ -22,9 +22,9 @@ class Logger:
         self.logger.addHandler(file_handler)
         self.logger.addHandler(console_handler)
     
-    def log(self, ip_address, llm, prompt, response):
+    def log(self, ip_address, user, llm, prompt, response):
         #strip all newlines
         prompt = prompt.replace('\n', ' ')
         response = response.replace('\n', ' ')
 
-        self.logger.info(f'IP Address ({ip_address}) | LLM ({llm}) | Prompt({prompt}) | Response: ({response})')
+        self.logger.info(f'IP Address ({ip_address}) | User ({user}) | LLM ({llm}) | Prompt({prompt}) | Response: ({response})')

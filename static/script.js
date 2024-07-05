@@ -240,8 +240,34 @@ function clearThread(llm) {
     });
 }
 
+// Function to check if the user has a conversation with the LLM
+function checkConversation(llm) {
+    fetch('/check_conversation', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ llm: llm }),
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.has_conversation) {
+            if (confirm('You already have a conversation with this LLM. Would you like to summarize it?')) {
+                summarizeThread(llm);
+            }
+        }
+    })
+    .catch((error) => {
+        console.error('Error:', error);
+    });
+}
+
 // Function to toggle LLM visibility
 function toggleLLM(llm) {
+    // If the LLM block is being toggled on, check if the user has a conversation
+    if (document.getElementById(llm + '-block').classList.contains('hidden')) {
+        checkConversation(llm);
+    }
     var llmBlock = document.getElementById(llm + '-block');
     llmBlock.classList.toggle('hidden');
     adjustLayout();
