@@ -4,6 +4,8 @@ Very basic application to layer a frontend to multiple LLMs for simultaneous use
 
 <a href="https://www.buymeacoffee.com/travin" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/default-orange.png" alt="Buy Me A Coffee" height="41" width="174"></a>
 
+![Screenshot of MultiLLM App](./images/MultiLLM_Screenshot.png?raw=true)
+
 ## Set up environment
 
 ```bash
