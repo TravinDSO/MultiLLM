@@ -1,6 +1,6 @@
 # Project Title
 
-Very basic application to layer a frontend to multiple LLMs for simultaneous use.
+Very basic application layering a frontend to multiple LLMs for simultaneous use.
 
 <a href="https://www.buymeacoffee.com/travin" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/default-orange.png" alt="Buy Me A Coffee" height="41" width="174"></a>
 
