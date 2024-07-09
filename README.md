@@ -22,7 +22,7 @@ users_example.json > users.json
 
 llm_config_example.json > llm_config.json
 
-environment_example.env > environment.json
+environment_example.env > environment.env
 
 ## Configure application
 Update users.json to local users for app
