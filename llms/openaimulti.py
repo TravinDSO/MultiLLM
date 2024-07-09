@@ -1,6 +1,5 @@
 import openai
 import time
-import requests
 
 class OpenaiMulti():
     def __init__(self, api_key,assistant_id="",model='gpt-4.0',info_link='',wait_limit=300, type='chat'):
