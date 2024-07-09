@@ -1,16 +1,38 @@
 {
     "llms": {
-        "GPT4o": {
-            "class": "GPT4o",
+        "Openai GPT4o": {
+            "class": "OpenaiMulti",
             "params": {
                 "api_key": "OPENAI_API_KEY",
                 "assistant_id": "OPENAI_ASSISTANT_ID",
                 "model": "gpt-4o",
-                "info_link": "https://openai.com/index/hello-gpt-4o/"
+                "info_link": "https://openai.com/index/hello-gpt-4o/",
+                "wait_limit": "300",
+                "type": "assistant"
+            }
+        },
+        "Openai GPT 3.5 Turbo": {
+            "class": "OpenaiMulti",
+            "params": {
+                "api_key": "OPENAI_API_KEY",
+                "model": "gpt-3.5-turbo",
+                "info_link": "https://openai.com/index/hello-gpt-4o/",
+                "wait_limit": "300",
+                "type": "chat"
+            }
+        },
+        "Openai Dall-e-3": {
+            "class": "OpenaiMulti",
+            "params": {
+                "api_key": "OPENAI_API_KEY",
+                "model": "dall-e-3",
+                "info_link": "https://openai.com/index/hello-gpt-4o/",
+                "wait_limit": "300",
+                "type": "image"
             }
         },
         "Claude 3.5": {
-            "class": "Claude35",
+            "class": "ClaudeMulti",
             "params": {
                 "api_key": "CLAUDE_API_KEY",
                 "model": "claude-3-5-sonnet-20240620",
@@ -18,19 +40,11 @@
             }
         },
         "Codeqwen 7b (local)": {
-            "class": "OllamaModel",
+            "class": "OllamaMulti",
             "params": {
                 "api_base_url": "OLLAMA_API_BASE_URL",
                 "model": "codeqwen:7b",
                 "info_link": "https://ollama.com/library/codeqwen:7b"
-            }
-        },
-        "Gemma2 27b-Q4 (local)": {
-            "class": "OllamaModel",
-            "params": {
-                "api_base_url": "OLLAMA_API_BASE_URL",
-                "model": "gemma2:27b-instruct-q4_0",
-                "info_link": "https://ollama.com/library/gemma2"
             }
         }
     }
