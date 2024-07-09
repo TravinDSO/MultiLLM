@@ -1,0 +1,28 @@
+{
+    "llms": {
+        "Azure GPT4o": {
+            "class": "Azure",
+            "params": {
+                "api_key": "AZURE_OPENAI_API_KEY",
+                "model":"gpt-4o",
+                "endpoint": "AZURE_OPENAI_API_ENDPOINT",
+                "version": "AZURE_OPENAI_API_VERSION",
+                "info_link": "https://openai.com/index/hello-gpt-4o/",
+                "use_assistants": "False",
+                "wait_limit": "30"
+            }
+        },
+        "Azure GPT35": {
+            "class": "Azure",
+            "params": {
+                "api_key": "AZURE_OPENAI_API_KEY",
+                "model":"GPT35",
+                "endpoint": "AZURE_OPENAI_API_ENDPOINT",
+                "version": "AZURE_OPENAI_API_VERSION",
+                "info_link": "https://openai.com/index/hello-gpt-4o/",
+                "use_assistants": "False",
+                "wait_limit": "30"
+            }
+        }
+    }
+}

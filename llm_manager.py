@@ -6,6 +6,7 @@ from dotenv import load_dotenv
 from llms.gpt4o import GPT4o
 from llms.claude35 import Claude35
 from llms.local_ollama import OllamaModel
+from llms.azure import Azure
 
 class LLMManager:
     def __init__(self, config_path='llm_config.json'):
