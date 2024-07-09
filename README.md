@@ -29,7 +29,7 @@ Update users.json to local users for app
 
 Modify llm_config.json to match desired LLMs
 
-Update the environment.json
+Update the environment.env
 * APP_IP & APP_PORT supoort specifying an IP for external use (something other than 127.0.0.1)
 * SECRET_KEY is a hash that secure your Fluke install (webserver)
 * OpenAI and Claude settings are if you will be utilizing those external LLMs
