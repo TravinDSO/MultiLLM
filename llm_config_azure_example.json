@@ -8,7 +8,7 @@
                 "endpoint": "AZURE_OPENAI_API_ENDPOINT",
                 "version": "AZURE_OPENAI_API_VERSION",
                 "info_link": "https://openai.com/index/hello-gpt-4o/",
-                "use_assistants": "False",
+                "use_assistants": "True",
                 "wait_limit": "30"
             }
         },
