@@ -1,6 +1,6 @@
 import requests
 
-class OllamaModel():
+class OllamaMulti():
     def __init__(self, api_base_url='http://localhost:11434',model = 'llama3', info_link='https://ollama.com/library'):
         self.api_base_url = api_base_url
         self.model = model
@@ -82,7 +82,7 @@ class OllamaModel():
 # Verify the file is being run directly
 if __name__ == '__main__':
     try:
-        ollama_test = OllamaModel()
+        ollama_test = OllamaMulti()
         response = ollama_test.generate('1+1?')
         print(response)
         response = ollama_test.generate('Why?')

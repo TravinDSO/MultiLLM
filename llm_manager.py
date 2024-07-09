@@ -3,10 +3,10 @@ import json
 from dotenv import load_dotenv
 
 # Import LLM classes
-from llms.gpt4o import GPT4o
-from llms.claude35 import Claude35
-from llms.local_ollama import OllamaModel
-from llms.azure import Azure
+from llms.openaimulti import OpenaiMulti
+from llms.claudemulti import ClaudeMulti
+from llms.ollamamulti import OllamaMulti
+from llms.azuremulti import AzureMulti
 
 class LLMManager:
     def __init__(self, config_path='llm_config.json'):

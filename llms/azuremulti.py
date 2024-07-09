@@ -1,7 +1,7 @@
 from openai import AzureOpenAI
 import time
 
-class Azure():
+class AzureMulti():
     def __init__(self, api_key, model='gpt-4o', endpoint='', version='', info_link='', use_assistants=True, wait_limit=300):
         try:
             self.client = AzureOpenAI(
@@ -142,7 +142,7 @@ if __name__ == '__main__':
 
         load_dotenv('../environment.env', override=True)
 
-        azure_gpt4o = Azure(
+        azure_gpt4o = AzureMulti(
             os.getenv('OPENAI_API_KEY'),
             'gpt-4o',
             os.getenv('AZURE_OPENAI_API_ENDPOINT'),

@@ -1,7 +1,7 @@
 import requests
 
-class Claude35():
-    def __init__(self, api_key, api_base_url='https://api.anthropic.com', model='claude-3-5-sonnet-20240620',info_link='https://www.anthropic.com/news/claude-3-5-sonnet'):
+class ClaudeMulti():
+    def __init__(self, api_key, api_base_url='https://api.anthropic.com', model='claude-3-5-sonnet-20240620',info_link=''):
         self.api_base_url = api_base_url
         self.model = model
         self.headers = {
@@ -83,7 +83,7 @@ if __name__ == '__main__':
     load_dotenv('environment.env', override=True)
         
     try:
-        claude = Claude35(os.getenv('CLAUDE_API_KEY'), api_base_url='https://api.anthropic.com')
+        claude = ClaudeMulti(os.getenv('CLAUDE_API_KEY'), api_base_url='https://api.anthropic.com')
     except Exception as e:
         print(f'Class Error: {e}')
 
