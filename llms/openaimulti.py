@@ -2,10 +2,10 @@ import openai
 import time
 
 class OpenaiMulti():
-    def __init__(self, api_key,assistant_id="",model='gpt-4.0',info_link='',wait_limit=300, type='chat'):
+    def __init__(self, api_key,model='gpt-4o',info_link='',wait_limit=300, type='chat'):
         self.client = openai.Client()
         self.client.api_key = api_key
-        self.openai_assistant_id = assistant_id
+        self.openai_assistant_id = {}
         self.openai_assistant_thread = {}
         self.model = model
         self.info_link = info_link
@@ -70,6 +70,13 @@ class OpenaiMulti():
             return f'Could not process direct prompt to OpenAI: {e}'
 
     def assistant_generate(self, user, prompt):
+        # Check if the user has an Azure OpenAI ASSISTANT and create one if not
+        if user not in self.openai_assistant_id:
+            try:
+                self.openai_assistant_id[user] = self.client.beta.assistants.create(model=self.model)
+            except Exception as e:
+                print(f'Could not create Assistant: {e}')
+
         # Check if the user has an openai assistant thread and create one if not
         if user not in self.openai_assistant_thread:
             self.openai_assistant_thread[user] = self.client.beta.threads.create()
@@ -82,7 +89,7 @@ class OpenaiMulti():
 
         run = self.client.beta.threads.runs.create(
             thread_id=self.openai_assistant_thread[user].id,
-            assistant_id=self.openai_assistant_id
+            assistant_id=self.openai_assistant_id[user].id,
         )
         start_time = time.time()
         result = ""
@@ -150,11 +157,12 @@ if __name__ == '__main__':
         from dotenv import load_dotenv
         load_dotenv('environment.env', override=True)
         
-        gpt4o = OpenaiMulti(os.getenv('OPENAI_API_KEY'),os.getenv('OPENAI_ASSISTANT_ID'))
+        #gpt4o = OpenaiMulti(os.getenv('OPENAI_API_KEY'),os.getenv('OPENAI_ASSISTANT_ID'),type='assistant')
+        gpt4o = OpenaiMulti(os.getenv('OPENAI_API_KEY'),type='assistant')
 
-        response = gpt4o.generate('1+1?')
+        response = gpt4o.generate('user','1+1?')
         print(response)
-        response = gpt4o.generate('Why?')
+        response = gpt4o.generate('user','Why?')
         print(response)
     except Exception as e:
         print(e)
