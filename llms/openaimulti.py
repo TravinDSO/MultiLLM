@@ -1,8 +1,9 @@
 import openai
 import time
+import json
 
 class OpenaiMulti():
-    def __init__(self, api_key,model='gpt-4o',info_link='',wait_limit=300, type='chat'):
+    def __init__(self, api_key,model='gpt-4o',info_link='',wait_limit=300, type='chat',assistant_functions=None):
         self.client = openai.Client()
         self.client.api_key = api_key
         self.openai_assistant_id = {}
@@ -13,6 +14,7 @@ class OpenaiMulti():
         self.wait_limit = int(wait_limit)
         self.type = type
         self.conversation_history = {}
+        self.assistant_functions = assistant_functions if assistant_functions else []
 
     def generate(self, user, prompt):
         if self.type == 'assistant':
@@ -74,6 +76,16 @@ class OpenaiMulti():
         if user not in self.openai_assistant_id:
             try:
                 self.openai_assistant_id[user] = self.client.beta.assistants.create(model=self.model)
+                # Update openai_assistants.json with the new assistant id
+                with open('openai_assistants.json', 'w') as f:
+                    # If data existing append the id to the json file, otherwise create a new json file
+                    try:
+                        data = json.load(f)
+                        data[user] = self.openai_assistant_id[user].id
+                        json.dump(data, f)
+                    except:
+                        data = {user: self.openai_assistant_id[user].id}
+                        json.dump(data, f)
             except Exception as e:
                 print(f'Could not create Assistant: {e}')
 
@@ -157,12 +169,32 @@ if __name__ == '__main__':
         from dotenv import load_dotenv
         load_dotenv('environment.env', override=True)
         
+        # Check if openai_assistants.json exists and if so, itterate through the file and delete the assistants
+        if os.path.exists('openai_assistants.json'):
+            client = openai.Client(api_key=os.getenv('OPENAI_API_KEY'))
+            with open('openai_assistants.json', 'r') as f:
+                try:
+                    assistants = json.load(f)
+                except:
+                    assistants = []
+            for assistant in assistants:
+                try:
+                    response = client.beta.assistants.delete(assistants[assistant])
+                    if response.deleted == True:
+                        print(f"Assistant {assistants[assistant]} deleted.")
+                    else:
+                        print(f"Assistant {assistants[assistant]} not deleted.")
+                    # Delete the openai_assistants.json file
+                    os.remove('openai_assistants.json')
+                except Exception as e:
+                    print(e)
+
         #gpt4o = OpenaiMulti(os.getenv('OPENAI_API_KEY'),os.getenv('OPENAI_ASSISTANT_ID'),type='assistant')
         gpt4o = OpenaiMulti(os.getenv('OPENAI_API_KEY'),type='assistant')
 
         response = gpt4o.generate('user','1+1?')
         print(response)
-        response = gpt4o.generate('user','Why?')
-        print(response)
+        #response = gpt4o.generate('user','Why?')
+        #print(response)
     except Exception as e:
         print(e)

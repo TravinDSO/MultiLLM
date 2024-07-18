@@ -1,5 +1,6 @@
 import os
 import json
+import openai
 from dotenv import load_dotenv
 
 # Import LLM classes
@@ -19,6 +20,26 @@ class LLMManager:
 
         self.llms = {}
         self.llm_links = {}
+
+        # Check if openai_assistants.json exists and if so, itterate through the file and delete the assistants
+        if os.path.exists('openai_assistants.json'):
+            client = openai.Client(api_key=os.getenv('OPENAI_API_KEY'))
+            with open('openai_assistants.json', 'r') as f:
+                try:
+                    assistants = json.load(f)
+                except:
+                    assistants = []
+            for assistant in assistants:
+                try:
+                    response = client.beta.assistants.delete(assistants[assistant])
+                    if response.deleted == True:
+                        print(f"Assistant {assistants[assistant]} deleted.")
+                    else:
+                        print(f"Assistant {assistants[assistant]} not deleted.")
+                    # Delete the openai_assistants.json file
+                    os.remove('openai_assistants.json')
+                except Exception as e:
+                    print(e)
 
         # Dynamically instantiate LLM objects based on the configuration
         for name, llm_config in config['llms'].items():
