@@ -15,6 +15,7 @@ class OpenaiMulti():
         self.type = type
         self.conversation_history = {}
         self.assistant_functions = assistant_functions if assistant_functions else []
+        self.tools = None
 
     def generate(self, user, prompt):
         if self.type == 'assistant':
@@ -75,7 +76,7 @@ class OpenaiMulti():
         # Check if the user has an Azure OpenAI ASSISTANT and create one if not
         if user not in self.openai_assistant_id:
             try:
-                self.openai_assistant_id[user] = self.client.beta.assistants.create(model=self.model)
+                self.openai_assistant_id[user] = self.client.beta.assistants.create(model=self.model,tools=self.tools)
                 # Update openai_assistants.json with the new assistant id
                 with open('openai_assistants.json', 'w') as f:
                     # If data existing append the id to the json file, otherwise create a new json file
