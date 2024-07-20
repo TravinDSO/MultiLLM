@@ -15,7 +15,25 @@ class OpenaiMulti():
         self.type = type
         self.conversation_history = {}
         self.assistant_functions = assistant_functions if assistant_functions else []
-        self.tools = None
+        self.tools = [
+            {
+            "type": "function",
+            "function": {
+                "name": "generate_image",
+                "description": "Generate and image if needed",
+                "parameters": {
+                "type": "object",
+                "properties": {
+                    "prompt": {
+                    "type": "string",
+                    "description": "Generate an image based on the prompt"
+                    }
+                },
+                "required": ["prompt"]
+                }
+            }
+            }
+        ]
 
     def generate(self, user, prompt):
         if self.type == 'assistant':
@@ -23,14 +41,20 @@ class OpenaiMulti():
         elif self.type == 'chat':
             return self.direct_generate(user, prompt)
         elif self.type == 'image':
-            return self.image_generate(user, prompt)
+            return self.image_generate(user, prompt, model=self.model)
         else:
             return "Not supported"
     
-    def image_generate(self, user, prompt):
+    def handle_tool(self, user, tool_name, tool_parameters):
+        if tool_name == "generate_image":
+            return self.image_generate(user, tool_parameters['prompt'])
+        else:
+            return "Tool not supported"
+
+    def image_generate(self, user, prompt, model='dall-e-3'):
         try:
             image = self.client.images.generate(
-                    model=self.model,
+                    model=model,
                     prompt=prompt,
                     n=1,
                     size="1024x1024"
@@ -111,6 +135,10 @@ class OpenaiMulti():
             # Check if the function returned a result and if the run is no longer queued
             if result.status == "completed":
                 break
+            elif result.status == "requires_action":
+                tool_outputs = []
+                for each_tool_call in result.required_action.submit_tool_outputs.tool_calls:
+                    self.handle_tool(user,each_tool_call.name, each_tool_call.parameters)
             else:
                 time.sleep(1)
 
@@ -199,3 +227,52 @@ if __name__ == '__main__':
         #print(response)
     except Exception as e:
         print(e)
+
+
+# #increase the time limit for generating an image by 30 seconds
+# self.wait_limit += 30
+
+# json_args = each_tool_call.function.arguments
+# args_dict = json.loads(json_args)
+
+# prompt = args_dict.get("prompt")
+# style = args_dict.get("style")
+# # Compose the response string
+# response = f"Generate an image using this prompt: {prompt}"
+# if style:
+#     response += f"\n\nEnsure the image is in the style of: {style}"
+
+# try:
+#     tool_response = await self.generate_image(message_guild, message.channel.id, message.author.id, self.bot.user.id, response)
+#     if tool_response:
+#         image_b64_json=tool_response.data[0].b64_json
+#         # Convert base64 data to bytes
+#         image_bytes = base64.b64decode(image_b64_json)
+
+#         # Create a BytesIO object and send the image separately
+#         with BytesIO(image_bytes) as image_bin:
+#             image_bin.seek(0)
+#             self.assistant_image_file = discord.File(fp=image_bin, filename='image.jpeg')
+#             if self.assistant_image_file:
+#                 await message.channel.send(file=self.assistant_image_file)
+#                 self.assistant_image_file = None
+#         tool_outputs.append(
+#             {
+#                 "tool_call_id": each_tool_call.id,
+#                 "output":  "Image successfully generated and sent to channel. Do not provide a link!"
+#             }
+#         )
+#     else:
+#         tool_outputs.append(
+#             {
+#                 "tool_call_id": each_tool_call.id,
+#                 "output": "Image did not generate successfully."
+#             }
+#         )
+# except Exception as e:
+#     tool_outputs.append(
+#         {
+#             "tool_call_id": each_tool_call.id,
+#             "output":  "Image did not generate successfully.\n\n" + str(e)
+#         }
+#     )
