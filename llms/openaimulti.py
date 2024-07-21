@@ -26,7 +26,7 @@ class OpenaiMulti():
                 "properties": {
                     "prompt": {
                     "type": "string",
-                    "description": "Generate an image based on the prompt"
+                    "description": "Generate an image based on the prompt. Format the response in HTML to display the image."
                     }
                 },
                 "required": ["prompt"]
@@ -45,9 +45,11 @@ class OpenaiMulti():
         else:
             return "Not supported"
     
-    def handle_tool(self, user, tool_name, tool_parameters):
+    def handle_tool(self, user, tool):
+        tool_name = tool.function.name
+        args = json.loads(tool.function.arguments)
         if tool_name == "generate_image":
-            return self.image_generate(user, tool_parameters['prompt'])
+            return self.image_generate(user, args['prompt'])
         else:
             return "Tool not supported"
 
@@ -58,8 +60,7 @@ class OpenaiMulti():
                     prompt=prompt,
                     n=1,
                     size="1024x1024"
-            )
-                
+            )                
             # Return the image in a HTML tag
             return f'<img src="{image.data[0].url}" alt={prompt} style="max-width: 100%;">'
         except Exception as e:
@@ -138,7 +139,30 @@ class OpenaiMulti():
             elif result.status == "requires_action":
                 tool_outputs = []
                 for each_tool_call in result.required_action.submit_tool_outputs.tool_calls:
-                    self.handle_tool(user,each_tool_call.name, each_tool_call.parameters)
+                    try:
+                        response = self.handle_tool(user,each_tool_call)
+                        tool_outputs.append(
+                            {
+                                "tool_call_id": each_tool_call.id,
+                                "output":  response
+                            }
+                        )
+                    except:
+                        tool_outputs.append(
+                            {
+                                "tool_call_id": each_tool_call.id,
+                                "output":  "Error processing tool"
+                            }
+                        )
+                #Tool output has been submitted, so we can continue
+                try:
+                    tool_run = self.client.beta.threads.runs.submit_tool_outputs(
+                            thread_id=self.openai_assistant_thread[user].id,
+                            run_id=run.id,
+                            tool_outputs=tool_outputs
+                            )
+                except Exception as e:
+                    print(f'Error submitting tool output: {e}')
             else:
                 time.sleep(1)
 
@@ -221,7 +245,7 @@ if __name__ == '__main__':
         #gpt4o = OpenaiMulti(os.getenv('OPENAI_API_KEY'),os.getenv('OPENAI_ASSISTANT_ID'),type='assistant')
         gpt4o = OpenaiMulti(os.getenv('OPENAI_API_KEY'),type='assistant')
 
-        response = gpt4o.generate('user','1+1?')
+        response = gpt4o.generate('user','Generate an image of a cat')
         print(response)
         #response = gpt4o.generate('user','Why?')
         #print(response)
