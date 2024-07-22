@@ -10,7 +10,10 @@ class ExampleOrchestrator(OpenaiMulti):
         # Call the parent class constructor
         super().__init__(api_key,model,info_link,wait_limit,type)
         self.websearch = GoogleSearch(google_key,google_cx)
-        self.instructions = "This is an example of an orchestrator that uses the OpenaiMulti class to orchestrate a number of LLMs as agents"
+        self.instructions = """
+        This is an example of an orchestrator that uses the OpenaiMulti class to 
+        orchestrate a number of LLMs as agents
+        """
         self.tools = [
             {
             "type": "function",
