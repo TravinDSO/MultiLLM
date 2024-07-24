@@ -10,9 +10,11 @@ class ExampleOrchestrator(OpenaiMulti):
         # Call the parent class constructor
         super().__init__(api_key,model,info_link,wait_limit,type)
         self.websearch = GoogleSearch(google_key,google_cx)
-        self.instructions = """
-        This is an example of an orchestrator that uses the OpenaiMulti class to 
-        orchestrate a number of LLMs as agents
+        self.agent_instructions = """
+        You are an orchestrator agent. You should maximize the use of the tools available to you.
+        You will always make use of the web_search tool to find real-time information that may not be available in the model.
+        Links should always be HTML formatted using href so they can be clicked on. Example: <a href="https://www.example.com" target"_blank">Page Title</a>
+        Images responses should be formatted in HTML to display the image. Example: <img src="https://www.example.com/image.jpg" alt="image">
         """
         self.tools = [
             {
@@ -41,7 +43,7 @@ class ExampleOrchestrator(OpenaiMulti):
                     "properties": {
                         "prompt": {
                         "type": "string",
-                        "description": "Your search string to find information on the web. Use this information in your response and include links if needed."
+                        "description": "Your search string to find information on the web. Use this information in your response."
                         }
                     },
                     "required": ["prompt"]

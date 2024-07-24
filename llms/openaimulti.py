@@ -3,9 +3,10 @@ import time
 import json
 
 class OpenaiMulti():
-    def __init__(self, api_key,model='gpt-4o',info_link='',wait_limit=300, type='chat',assistant_functions=None):
+    def __init__(self, api_key,model='gpt-4o',info_link='',wait_limit=300, type='chat'):
         self.client = openai.Client()
         self.client.api_key = api_key
+        self.agent_instructions = ""
         self.openai_assistant_id = {}
         self.openai_assistant_thread = {}
         self.model = model
@@ -14,7 +15,6 @@ class OpenaiMulti():
         self.wait_limit = int(wait_limit)
         self.type = type
         self.conversation_history = {}
-        self.assistant_functions = assistant_functions if assistant_functions else []
         self.tools = [
             {
             "type": "function",
@@ -101,7 +101,7 @@ class OpenaiMulti():
         # Check if the user has an Azure OpenAI ASSISTANT and create one if not
         if user not in self.openai_assistant_id:
             try:
-                self.openai_assistant_id[user] = self.client.beta.assistants.create(model=self.model,tools=self.tools)
+                self.openai_assistant_id[user] = self.client.beta.assistants.create(model=self.model,tools=self.tools,instructions=self.agent_instructions)
                 # Update openai_assistants.json with the new assistant id
                 with open('openai_assistants.json', 'w') as f:
                     # If data existing append the id to the json file, otherwise create a new json file
@@ -245,58 +245,9 @@ if __name__ == '__main__':
         #gpt4o = OpenaiMulti(os.getenv('OPENAI_API_KEY'),os.getenv('OPENAI_ASSISTANT_ID'),type='assistant')
         gpt4o = OpenaiMulti(os.getenv('OPENAI_API_KEY'),type='assistant')
 
-        response = gpt4o.generate('user','Generate an image of a cat')
+        response = gpt4o.generate('user','Why is the sky blue?')
         print(response)
         #response = gpt4o.generate('user','Why?')
         #print(response)
     except Exception as e:
         print(e)
-
-
-# #increase the time limit for generating an image by 30 seconds
-# self.wait_limit += 30
-
-# json_args = each_tool_call.function.arguments
-# args_dict = json.loads(json_args)
-
-# prompt = args_dict.get("prompt")
-# style = args_dict.get("style")
-# # Compose the response string
-# response = f"Generate an image using this prompt: {prompt}"
-# if style:
-#     response += f"\n\nEnsure the image is in the style of: {style}"
-
-# try:
-#     tool_response = await self.generate_image(message_guild, message.channel.id, message.author.id, self.bot.user.id, response)
-#     if tool_response:
-#         image_b64_json=tool_response.data[0].b64_json
-#         # Convert base64 data to bytes
-#         image_bytes = base64.b64decode(image_b64_json)
-
-#         # Create a BytesIO object and send the image separately
-#         with BytesIO(image_bytes) as image_bin:
-#             image_bin.seek(0)
-#             self.assistant_image_file = discord.File(fp=image_bin, filename='image.jpeg')
-#             if self.assistant_image_file:
-#                 await message.channel.send(file=self.assistant_image_file)
-#                 self.assistant_image_file = None
-#         tool_outputs.append(
-#             {
-#                 "tool_call_id": each_tool_call.id,
-#                 "output":  "Image successfully generated and sent to channel. Do not provide a link!"
-#             }
-#         )
-#     else:
-#         tool_outputs.append(
-#             {
-#                 "tool_call_id": each_tool_call.id,
-#                 "output": "Image did not generate successfully."
-#             }
-#         )
-# except Exception as e:
-#     tool_outputs.append(
-#         {
-#             "tool_call_id": each_tool_call.id,
-#             "output":  "Image did not generate successfully.\n\n" + str(e)
-#         }
-#     )
