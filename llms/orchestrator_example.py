@@ -65,25 +65,3 @@ class ExampleOrchestrator(OpenaiMulti):
             results =  "Tool not supported"
         
         return results
-
-
-
-
-# Test Cell
-# Please do not modify
-if __name__ == '__main__':
-    try:
-        #load the env file
-        import os
-        from dotenv import load_dotenv
-        load_dotenv('environment.env', override=True)
-        
-        #gpt4o = OpenaiMulti(os.getenv('OPENAI_API_KEY'),os.getenv('OPENAI_ASSISTANT_ID'),type='assistant')
-        gpt4o = ExampleOrchestrator(os.getenv('OPENAI_API_KEY'),type='assistant', google_key=os.getenv('GOOGLE_API_KEY'), google_cx=os.getenv('GOOGLE_CX'))
-
-        response = gpt4o.generate('user','Did President Biden drop out of the 2024 election?')
-        print(response)
-        #response = gpt4o.generate('user','Why?')
-        #print(response)
-    except Exception as e:
-        print(e)
