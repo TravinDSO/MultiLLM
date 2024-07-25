@@ -11,6 +11,7 @@ class ClaudeMulti():
         }
         self.conversation_history = {}
         self.info_link = info_link
+        self.agent_instructions = ''
 
     def generate(self, user, prompt, max_tokens=2000, stop_sequences=None, temperature=1.0):
         
@@ -26,6 +27,7 @@ class ClaudeMulti():
         
         payload = {
             'model': self.model,
+            'system' : self.agent_instructions,
             'messages': self.conversation_history[user],  # Use the conversation history
             'max_tokens': max_tokens,
             'temperature': temperature

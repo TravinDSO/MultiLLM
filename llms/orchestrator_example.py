@@ -2,19 +2,28 @@
 
 import json
 from llms.openaimulti import OpenaiMulti
+from llms.claudemulti import ClaudeMulti
 from llms.tools.google_search import GoogleSearch
 
 # Inherit from the OpenaiMulti class
 class ExampleOrchestrator(OpenaiMulti):
-    def __init__(self, api_key,model='gpt-4o',info_link='',wait_limit=300, type='chat',google_key="",google_cx=""):
+    def __init__(self, api_key,model='gpt-4o',info_link='',wait_limit=300, type='chat',google_key="",google_cx="",claude_key=""):
         # Call the parent class constructor
         super().__init__(api_key,model,info_link,wait_limit,type)
         self.websearch = GoogleSearch(google_key,google_cx)
+
+        self.claude_agent = ClaudeMulti(claude_key)
+
         self.agent_instructions = """
         You are an orchestrator agent. You should maximize the use of the tools available to you.
         You will always make use of the web_search tool to find real-time information that may not be available in the model.
         Links should always be HTML formatted using href so they can be clicked on. Example: <a href="https://www.example.com" target"_blank">Page Title</a>
         Images responses should be formatted in HTML to display the image. Example: <img src="https://www.example.com/image.jpg" alt="image">
+
+        Use the agent_researcher tool when attempting to respond to highly factual or technical prompts. This tool will provide you with feedback to improve your response.
+
+        All final responses should flow through the agent_writer tool to generate a response.
+
         """
         self.tools = [
             {
@@ -49,18 +58,61 @@ class ExampleOrchestrator(OpenaiMulti):
                     "required": ["prompt"]
                     }
                 }
+            },{
+            "type": "function",
+            "function": {
+                    "name": "agent_writer",
+                    "description": "Use the Claude API to take all of the information you have gathered and write a response.",
+                    "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "prompt": {
+                        "type": "string",
+                        "description": "All of the information you have gathered to write a response and instructions on what to do with it."
+                        }
+                    },
+                    "required": ["prompt"]
+                    }
+                }
+            },{
+            "type": "function",
+            "function": {
+                    "name": "agent_researcher",
+                    "description": "Use the Claude API as a researcher and analyist to check facts, provide information and feedback to improve your response.",
+                    "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "prompt": {
+                        "type": "string",
+                        "description": "Information to research and analize, providing feedback to improve your response."
+                        }
+                    },
+                    "required": ["prompt"]
+                    }
+                }
             }
         ]
 
     # override the handle_tool method
     def handle_tool(self, user, tool):
         tool_name = tool.function.name
+        debug = True # Set to True to print debug information
         args = json.loads(tool.function.arguments)
         if tool_name == "generate_image":
             results =  self.image_generate(user, args['prompt'])  # image gen is already part of the OpenaiMulti class
+            if debug: print(f"Generate Image use")
         elif tool_name == "web_search":
             top_result_link, page_text = self.websearch.search(args['prompt'])
             results = f'Top search result link: {top_result_link}\nPage text: {page_text}'
+            if debug: print(f"Web Search use")
+        elif tool_name == "agent_writer":
+            self.claude_agent.agent_instructions = "You are a professional writer. Use the information and instructions provided to write a response."
+            results = self.claude_agent.generate(user, args['prompt'])
+            if debug: print(f"Agent Writer use")
+        elif tool_name == "agent_researcher":
+            self.claude_agent.agent_instructions = "You are a professional researcher and analyist. Use the information and instructions provided to research and provide feedback."
+            results = self.claude_agent.generate(user, args['prompt'])
+            if debug: print(f"Agent Researcher use")
         else:
             results =  "Tool not supported"
         
