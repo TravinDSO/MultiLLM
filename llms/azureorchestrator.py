@@ -1,16 +1,16 @@
 # This is an example of an orchestrator that uses the OpenaiMulti class to orchestrate a number of LLMs as agents
 
 import json
-from llms.openaimulti import OpenaiMulti
+from llms.azuremulti import AzureMulti
 from llms.claudemulti import ClaudeMulti
 from llms.ollamamulti import OllamaMulti
 from llms.tools.google_search import GoogleSearch
 
 # Inherit from the OpenaiMulti class
-class ExampleOrchestrator(OpenaiMulti):
-    def __init__(self, api_key,model='gpt-4o',info_link='',wait_limit=300, type='chat',google_key="",google_cx="",claude_key=""):
+class AzureOrchestrator(AzureMulti):
+    def __init__(self, api_key,model='gpt-4o',endpoint='',version='',info_link='',type='assistant',wait_limit=300,google_key="",google_cx="",claude_key=""):
         # Call the parent class constructor
-        super().__init__(api_key,model,info_link,wait_limit,type)
+        super().__init__(api_key,model,endpoint,version,info_link,wait_limit,type)
         self.websearch = GoogleSearch(google_key,google_cx)
 
         #Agents

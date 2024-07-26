@@ -1,7 +1,7 @@
 {
     "llms": {
         "Azure GPT4o": {
-            "class": "Azure",
+            "class": "AzureMulti",
             "params": {
                 "api_key": "AZURE_OPENAI_API_KEY",
                 "model":"gpt-4o",
@@ -13,7 +13,7 @@
             }
         },
         "Azure GPT35": {
-            "class": "Azure",
+            "class": "AzureMulti",
             "params": {
                 "api_key": "AZURE_OPENAI_API_KEY",
                 "model":"GPT35",

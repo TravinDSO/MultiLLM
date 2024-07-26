@@ -1,8 +1,9 @@
 from openai import AzureOpenAI
 import time
+import json
 
 class AzureMulti():
-    def __init__(self, api_key, model='gpt-4o', endpoint='', version='', info_link='', use_assistants=True, wait_limit=300):
+    def __init__(self, api_key, model='gpt-4o', endpoint='', version='', info_link='', wait_limit=300, type='chat'):
         try:
             self.client = AzureOpenAI(
                 api_key=api_key,
@@ -11,7 +12,6 @@ class AzureMulti():
             )
         except Exception as e:
             print(f'Could not create Azure Client: {e}')
-        self.use_assistants = use_assistants
         self.model = model
         self.openai_assistant_id = {}
         self.openai_assistant_thread = {}
@@ -19,14 +19,60 @@ class AzureMulti():
         self.wait_limit = int(wait_limit)
         self.number_of_responses = 0
         self.conversation_history = {}
+        self.type = type
+        self.tools = [
+            {
+                "type": "function",
+                "function": {
+                    "name": "generate_image",
+                    "description": "Generate an image if needed",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "prompt": {
+                                "type": "string",
+                                "description": "Generate an image based on the prompt. Format the response in HTML to display the image."
+                            }
+                        },
+                        "required": ["prompt"]
+                    }
+                }
+            }
+        ]
 
     def generate(self, user, prompt):
-        if self.use_assistants:
+        if self.type == 'assistant':
             return self.assistant_generate(user, prompt)
-        else:
+        elif self.type == 'chat':
             return self.direct_generate(user, prompt)
+        elif self.type == 'image':
+            return self.image_generate(user, prompt, model=self.model)
+        else:
+            return "Not supported"
 
-    def direct_generate(self,  user,prompt):
+    def handle_tool(self, user, tool):
+        tool_name = tool.function.name
+        args = json.loads(tool.function.arguments)
+        if tool_name == "generate_image":
+            return self.image_generate(user, args['prompt'])
+        else:
+            return "Tool not supported"
+
+    def image_generate(self, user, prompt, model='dall-e-3'):
+        try:
+            image = self.client.images.generate(
+                model=model,
+                prompt=prompt,
+                n=1,
+                size="1024x1024"
+            )
+            # Return the image in an HTML tag
+            return f'<img src="{image.data[0].url}" alt="{prompt}" style="max-width: 100%;">'
+        except Exception as e:
+            print(f'Could not process image prompt to Azure: {e}')
+            return f'Could not process image: {e}'
+
+    def direct_generate(self, user, prompt):
         # Check if the user has a conversation history and create one if not
         if user not in self.conversation_history:
             self.conversation_history[user] = []
@@ -59,7 +105,7 @@ class AzureMulti():
         # Check if the user has an Azure OpenAI ASSISTANT and create one if not
         if user not in self.openai_assistant_id:
             try:
-                self.openai_assistant_id[user] = self.client.beta.assistants.create(model=self.model)
+                self.openai_assistant_id[user] = self.client.beta.assistants.create(model=self.model, tools=self.tools)
             except Exception as e:
                 print(f'Could not create Azure Assistant: {e}')
 
@@ -83,11 +129,37 @@ class AzureMulti():
         start_time = time.time()
         result = ""
         while (time.time() - start_time) < self.wait_limit:
-            result = self.client.beta.threads.runs.retrieve(thread_id=self.openai_assistant_thread[user].id,
-                                                            run_id=run.id)
+            result = self.client.beta.threads.runs.retrieve(thread_id=self.openai_assistant_thread[user].id, run_id=run.id)
             # Check if the function returned a result and if the run is no longer queued
             if result.status == "completed":
                 break
+            elif result.status == "requires_action":
+                tool_outputs = []
+                for each_tool_call in result.required_action.submit_tool_outputs.tool_calls:
+                    try:
+                        response = self.handle_tool(user, each_tool_call)
+                        tool_outputs.append(
+                            {
+                                "tool_call_id": each_tool_call.id,
+                                "output": response
+                            }
+                        )
+                    except:
+                        tool_outputs.append(
+                            {
+                                "tool_call_id": each_tool_call.id,
+                                "output": "Error processing tool"
+                            }
+                        )
+                # Tool output has been submitted, so we can continue
+                try:
+                    tool_run = self.client.beta.threads.runs.submit_tool_outputs(
+                        thread_id=self.openai_assistant_thread[user].id,
+                        run_id=run.id,
+                        tool_outputs=tool_outputs
+                    )
+                except Exception as e:
+                    print(f'Error submitting tool output: {e}')
             else:
                 time.sleep(1)
 
@@ -116,8 +188,11 @@ class AzureMulti():
                 return False
 
     def summarize_conversation(self, user):
-        prompt = 'Summarize the current conversation. If code was generated, preserve it, presenting the most complete version to the user.'
-        return self.generate(user, prompt)
+        if self.type in ['assistant', 'chat']:
+            prompt = 'Summarize the current conversation. If code was generated, preserve it, presenting the most complete version to the user.'
+            return self.generate(user, prompt)
+        else:
+            return "Not supported"
 
     def clear_conversation(self, user):
         if self.use_assistants:
@@ -129,10 +204,9 @@ class AzureMulti():
             self.conversation_history[user] = []
             return "Conversation cleared."
 
-
 # Test Cell
 # Please do not modify
-# The following test cell is used to test the implementation of the `GPT4o` class to ensure it works as expected.
+# The following test cell is used to test the implementation of the `AzureMulti` class to ensure it works as expected.
 if __name__ == '__main__':
     try:
         response = ''
