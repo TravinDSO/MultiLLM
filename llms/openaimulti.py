@@ -1,11 +1,13 @@
 import openai
 import time
+import json
 
 class OpenaiMulti():
-    def __init__(self, api_key,assistant_id="",model='gpt-4.0',info_link='',wait_limit=300, type='chat'):
+    def __init__(self, api_key,model='gpt-4o',info_link='',wait_limit=300, type='chat'):
         self.client = openai.Client()
         self.client.api_key = api_key
-        self.openai_assistant_id = assistant_id
+        self.agent_instructions = ""
+        self.openai_assistant_id = {}
         self.openai_assistant_thread = {}
         self.model = model
         self.info_link = info_link
@@ -13,6 +15,25 @@ class OpenaiMulti():
         self.wait_limit = int(wait_limit)
         self.type = type
         self.conversation_history = {}
+        self.tools = [
+            {
+            "type": "function",
+            "function": {
+                "name": "generate_image",
+                "description": "Generate and image if needed",
+                "parameters": {
+                "type": "object",
+                "properties": {
+                    "prompt": {
+                    "type": "string",
+                    "description": "Generate an image based on the prompt. Format the response in HTML to display the image."
+                    }
+                },
+                "required": ["prompt"]
+                }
+            }
+            }
+        ]
 
     def generate(self, user, prompt):
         if self.type == 'assistant':
@@ -20,19 +41,26 @@ class OpenaiMulti():
         elif self.type == 'chat':
             return self.direct_generate(user, prompt)
         elif self.type == 'image':
-            return self.image_generate(user, prompt)
+            return self.image_generate(user, prompt, model=self.model)
         else:
             return "Not supported"
     
-    def image_generate(self, user, prompt):
+    def handle_tool(self, user, tool):
+        tool_name = tool.function.name
+        args = json.loads(tool.function.arguments)
+        if tool_name == "generate_image":
+            return self.image_generate(user, args['prompt'])
+        else:
+            return "Tool not supported"
+
+    def image_generate(self, user, prompt, model='dall-e-3'):
         try:
             image = self.client.images.generate(
-                    model=self.model,
+                    model=model,
                     prompt=prompt,
                     n=1,
                     size="1024x1024"
-            )
-                
+            )                
             # Return the image in a HTML tag
             return f'<img src="{image.data[0].url}" alt={prompt} style="max-width: 100%;">'
         except Exception as e:
@@ -70,6 +98,23 @@ class OpenaiMulti():
             return f'Could not process direct prompt to OpenAI: {e}'
 
     def assistant_generate(self, user, prompt):
+        # Check if the user has an Azure OpenAI ASSISTANT and create one if not
+        if user not in self.openai_assistant_id:
+            try:
+                self.openai_assistant_id[user] = self.client.beta.assistants.create(model=self.model,tools=self.tools,instructions=self.agent_instructions)
+                # Update openai_assistants.json with the new assistant id
+                with open('openai_assistants.json', 'w') as f:
+                    # If data existing append the id to the json file, otherwise create a new json file
+                    try:
+                        data = json.load(f)
+                        data[user] = self.openai_assistant_id[user].id
+                        json.dump(data, f)
+                    except:
+                        data = {user: self.openai_assistant_id[user].id}
+                        json.dump(data, f)
+            except Exception as e:
+                print(f'Could not create Assistant: {e}')
+
         # Check if the user has an openai assistant thread and create one if not
         if user not in self.openai_assistant_thread:
             self.openai_assistant_thread[user] = self.client.beta.threads.create()
@@ -82,7 +127,7 @@ class OpenaiMulti():
 
         run = self.client.beta.threads.runs.create(
             thread_id=self.openai_assistant_thread[user].id,
-            assistant_id=self.openai_assistant_id
+            assistant_id=self.openai_assistant_id[user].id,
         )
         start_time = time.time()
         result = ""
@@ -91,6 +136,33 @@ class OpenaiMulti():
             # Check if the function returned a result and if the run is no longer queued
             if result.status == "completed":
                 break
+            elif result.status == "requires_action":
+                tool_outputs = []
+                for each_tool_call in result.required_action.submit_tool_outputs.tool_calls:
+                    try:
+                        response = self.handle_tool(user,each_tool_call)
+                        tool_outputs.append(
+                            {
+                                "tool_call_id": each_tool_call.id,
+                                "output":  response
+                            }
+                        )
+                    except:
+                        tool_outputs.append(
+                            {
+                                "tool_call_id": each_tool_call.id,
+                                "output":  "Error processing tool"
+                            }
+                        )
+                #Tool output has been submitted, so we can continue
+                try:
+                    tool_run = self.client.beta.threads.runs.submit_tool_outputs(
+                            thread_id=self.openai_assistant_thread[user].id,
+                            run_id=run.id,
+                            tool_outputs=tool_outputs
+                            )
+                except Exception as e:
+                    print(f'Error submitting tool output: {e}')
             else:
                 time.sleep(1)
 
@@ -150,11 +222,32 @@ if __name__ == '__main__':
         from dotenv import load_dotenv
         load_dotenv('environment.env', override=True)
         
-        gpt4o = OpenaiMulti(os.getenv('OPENAI_API_KEY'),os.getenv('OPENAI_ASSISTANT_ID'))
+        # Check if openai_assistants.json exists and if so, itterate through the file and delete the assistants
+        if os.path.exists('openai_assistants.json'):
+            client = openai.Client(api_key=os.getenv('OPENAI_API_KEY'))
+            with open('openai_assistants.json', 'r') as f:
+                try:
+                    assistants = json.load(f)
+                except:
+                    assistants = []
+            for assistant in assistants:
+                try:
+                    response = client.beta.assistants.delete(assistants[assistant])
+                    if response.deleted == True:
+                        print(f"Assistant {assistants[assistant]} deleted.")
+                    else:
+                        print(f"Assistant {assistants[assistant]} not deleted.")
+                    # Delete the openai_assistants.json file
+                    os.remove('openai_assistants.json')
+                except Exception as e:
+                    print(e)
 
-        response = gpt4o.generate('1+1?')
+        #gpt4o = OpenaiMulti(os.getenv('OPENAI_API_KEY'),os.getenv('OPENAI_ASSISTANT_ID'),type='assistant')
+        gpt4o = OpenaiMulti(os.getenv('OPENAI_API_KEY'),type='assistant')
+
+        response = gpt4o.generate('user','Why is the sky blue?')
         print(response)
-        response = gpt4o.generate('Why?')
-        print(response)
+        #response = gpt4o.generate('user','Why?')
+        #print(response)
     except Exception as e:
         print(e)

@@ -10,17 +10,17 @@ class Logger:
         self.logger.setLevel(logging.INFO)
         
         # Create handlers
-        file_handler = logging.FileHandler(self.log_file)
-        console_handler = logging.StreamHandler()
+        file_handler = logging.FileHandler(self.log_file,encoding='utf-8')
+        #console_handler = logging.StreamHandler()
         
         # Create formatters and add it to handlers
         formatter = logging.Formatter('%(asctime)s - %(message)s')
         file_handler.setFormatter(formatter)
-        console_handler.setFormatter(formatter)
+        #console_handler.setFormatter(formatter)
         
         # Add handlers to the logger
         self.logger.addHandler(file_handler)
-        self.logger.addHandler(console_handler)
+        #self.logger.addHandler(console_handler)
     
     def log(self, ip_address, user, llm, prompt, response):
         #strip all newlines
