@@ -15,7 +15,7 @@ class ExampleOrchestrator(OpenaiMulti):
 
         #Agents
         self.claude_agent = ClaudeMulti(claude_key)
-        self.math_agent = OllamaMulti('wizard-math:7b')
+        self.math_agent = OllamaMulti('llama3.1:latest')
 
         self.agent_instructions = """
         You are an orchestrator agent. You should maximize the use of the tools available to you.
@@ -131,7 +131,7 @@ class ExampleOrchestrator(OpenaiMulti):
             self.claude_agent.agent_instructions = "You are a professional researcher and analyist. Use the information and instructions provided to research and provide feedback."
             results = self.claude_agent.generate(user, args['prompt'])
         elif tool_name == "agent_mathmatician":
-            if debug: print(f"Asking the Agent Mathmatician (Local: Wizard-Math 7b)")
+            if debug: print(f"Asking the Agent Mathmatician (Local: Llama3.1 7b)")
             results = self.math_agent.generate(user, args['prompt'])
         else:
             results =  "Tool not supported"
