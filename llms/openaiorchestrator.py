@@ -71,7 +71,7 @@ class OpenaiOrchestrator(OpenaiMulti):
         ]
 
         # Agents available to the orchestrator
-        self.agents += [   
+        self.tools += [   
             {
             "type": "function",
             "function": {

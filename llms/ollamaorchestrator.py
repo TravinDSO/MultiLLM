@@ -1,17 +1,19 @@
 import json
 from llms.ollamamulti import OllamaMulti
-from llms.tools.google_search import GoogleSearch  # Ensure this import is correct
-from llms.tools.confluence_search import ConfluenceSearch  # Ensure this import is correct
+from llms.tools.google_search import GoogleSearch
+from llms.tools.confluence_search import ConfluenceSearch
+from llms.tools.jira_search import JiraSearch
 
 class OllamaOrchestrator(OllamaMulti):
     def __init__(self, api_base_url='http://localhost:11434', model='llama3.1', info_link='', wait_limit=300,
-                 google_key="", google_cx="",confluence_url="",confluence_token=""):
+                 google_key="", google_cx="",confluence_url="",confluence_token="",jira_url="",jira_token=""):
         # Call the parent class constructor
         super().__init__(api_base_url, model, info_link, wait_limit)
 
         # Tools
         self.websearch = GoogleSearch(google_key, google_cx)
         self.confluence_search = ConfluenceSearch(confluence_url, confluence_token)
+        self.jira_search = JiraSearch(jira_url, jira_token)
 
         # Agents
         self.llama3_1_agent = OllamaMulti(api_base_url, 'llama3.1:latest')
@@ -63,11 +65,27 @@ class OllamaOrchestrator(OllamaMulti):
                     "required": ["search_string"]
                     }
                 } 
+            },{
+            "type": "function",
+            "function": {
+                    "name": "jira_search",
+                    "description": "Search the Atlassian JIRA system for information. If you don't find what you need, try again.",
+                    "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "JQL": {
+                        "type": "string",
+                        "description": "Craft a Confluence JQL string to find information from Atlassian Confluence."
+                        }
+                    },
+                    "required": ["JQL"]
+                    }
+                } 
             }
         ]
 
         # Agents available to the orchestrator
-        self.agents += [
+        self.tools += [
             {
             "type": "function",
             "function": {
@@ -135,9 +153,9 @@ class OllamaOrchestrator(OllamaMulti):
                     web_info += f"Link: {link}\nPage Text: {page_text}\n"
                 results = f'Your search to answer the question: {prompt} produced the following results:\n{web_info}'
         elif tool_name == "confluence_search":
-            if debug: print(f"Searching the Wiki (Confluence): {tool_args['search_string']}")
+            if debug: print(f"Searching the Wiki (Confluence): {tool_args['CQL']}")
             confluence_info = ""
-            confluence_data = self.confluence_search.search(tool_args['search_string'], num_results=25)
+            confluence_data = self.confluence_search.search(tool_args['CQL'], num_results=10)
             if confluence_data is None:
                 results = "No search results found"
             else:
@@ -146,6 +164,18 @@ class OllamaOrchestrator(OllamaMulti):
                     #append the link and page test
                     confluence_info += f"Page Text: {page_text}\n"
                 results = f'Your search to answer the question: {prompt} produced the following results:\n{confluence_info}'
+        elif tool_name == "jira_search":
+            if debug: print(f"Searching JIRA: {tool_args['JQL']}")
+            jira_info = ""
+            jira_data = self.jira_search.search(tool_args['JQL'], num_results=10)
+            if jira_data is None:
+                results = "No search results found"
+            else:
+                # Get each link and page text from the search results
+                for ticket_text in jira_data:
+                    #append the link and page test
+                    jira_info += f"JIRA Text: {ticket_text}\n"
+                results = f'Your search to answer the question: {prompt} produced the following results:\n{jira_info}'
         elif tool_name == "agent_writer":
             if debug: print(f"Asking the Agent Writer")
             agent_prompt = f"You are a professional writer. Use the information and instructions provided to write a response to the original question:{prompt}. Information and instructions: {tool_args['information']}"
