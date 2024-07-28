@@ -1,12 +1,17 @@
 import json
 from llms.ollamamulti import OllamaMulti
 from llms.tools.google_search import GoogleSearch  # Ensure this import is correct
+from llms.tools.confluence_search import ConfluenceSearch  # Ensure this import is correct
 
 class OllamaOrchestrator(OllamaMulti):
-    def __init__(self, api_base_url='http://localhost:11434', model='llama3.1', info_link='', wait_limit=300, google_key="", google_cx=""):
+    def __init__(self, api_base_url='http://localhost:11434', model='llama3.1', info_link='', wait_limit=300,
+                 google_key="", google_cx="",confluence_url="",confluence_token=""):
         # Call the parent class constructor
         super().__init__(api_base_url, model, info_link, wait_limit)
+
+        # Tools
         self.websearch = GoogleSearch(google_key, google_cx)
+        self.confluence_search = ConfluenceSearch(confluence_url, confluence_token)
 
         # Agents
         self.llama3_1_agent = OllamaMulti(api_base_url, 'llama3.1:latest')
@@ -15,11 +20,16 @@ class OllamaOrchestrator(OllamaMulti):
         self.agent_instructions = """
         You are an orchestrator agent. You should maximize the use of the tools available to you.
         You will always make use of the web_search tool to find real-time information that may not be available in the model.
+        If someone asks for information from the Wiki or Confluence, you should use the confluence_search tool. The confluence_search tool also contains information relating to the our business, Cvent.
+        For both web_search and confluence_search, you may also ask follow-up questions to get more information.
         Links should always be HTML formatted using href so they can be clicked on. Example: <a href="https://www.example.com" target"_blank">Page Title</a>
-        Use the agent_mathmatician tool when attempting to solve mathematical or logical problems. Include all supporting information in the prompt.
+        Images responses should be formatted in HTML to display the image. Example: <img src="https://www.example.com/image.jpg" alt="image">
+        Use the agent_mathmatician tool when attempting to solve mathmatical or logical problems. Include all supporting information in the prompt.
         Use the agent_researcher tool when attempting to respond to highly factual or technical prompts. This tool will provide you with feedback to improve your response.
         All final responses should flow through the agent_writer tool to generate a response.
         """
+
+        # Additional tools created for the orchestrator
         self.tools = [
             {
             "type": "function",
@@ -37,7 +47,28 @@ class OllamaOrchestrator(OllamaMulti):
                     "required": ["search_string"]
                     }
                 }
-            }, {
+            },{
+            "type": "function",
+            "function": {
+                    "name": "confluence_search",
+                    "description": "Search the Atlassian Confluence system for information. If you don't find what you need, try again.",
+                    "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "search_string": {
+                        "type": "string",
+                        "description": "Your search string to find information from Atlassian Confluence. Use this information in your response."
+                        }
+                    },
+                    "required": ["search_string"]
+                    }
+                } 
+            }
+        ]
+
+        # Agents available to the orchestrator
+        self.agents += [
+            {
             "type": "function",
             "function": {
                     "name": "agent_writer",
@@ -53,7 +84,7 @@ class OllamaOrchestrator(OllamaMulti):
                     "required": ["information"]
                     }
                 }
-            }, {
+            },{
             "type": "function",
             "function": {
                     "name": "agent_researcher",
@@ -89,7 +120,7 @@ class OllamaOrchestrator(OllamaMulti):
         ]
 
     # Override the handle_tool method
-    def handle_tool(self, user, tool_name, tool_args):
+    def handle_tool(self, user, tool_name, tool_args, prompt):
         debug = True  # Set to True to print debug information
         if tool_name == "web_search":
             if debug: print(f"Searching the web (Google)")
@@ -102,10 +133,22 @@ class OllamaOrchestrator(OllamaMulti):
                 for link, page_text in web_data:
                     #append the link and page test
                     web_info += f"Link: {link}\nPage Text: {page_text}\n"
-                results = f'Your search to answer the question produced the following results:\n{web_info}'
+                results = f'Your search to answer the question: {prompt} produced the following results:\n{web_info}'
+        elif tool_name == "confluence_search":
+            if debug: print(f"Searching the Wiki (Confluence): {tool_args['search_string']}")
+            confluence_info = ""
+            confluence_data = self.confluence_search.search(tool_args['search_string'], num_results=25)
+            if confluence_data is None:
+                results = "No search results found"
+            else:
+                # Get each link and page text from the search results
+                for page_text in confluence_data:
+                    #append the link and page test
+                    confluence_info += f"Page Text: {page_text}\n"
+                results = f'Your search to answer the question: {prompt} produced the following results:\n{confluence_info}'
         elif tool_name == "agent_writer":
             if debug: print(f"Asking the Agent Writer")
-            agent_prompt = f"You are a professional writer. Use the information and instructions provided to write a response. Question: {tool_args['information']}"
+            agent_prompt = f"You are a professional writer. Use the information and instructions provided to write a response to the original question:{prompt}. Information and instructions: {tool_args['information']}"
             self.conversation_history[user].append({
                 'role': 'user',
                 'content': agent_prompt
@@ -114,7 +157,7 @@ class OllamaOrchestrator(OllamaMulti):
             results = self.llama3_1_agent.generate(user, agent_prompt)
         elif tool_name == "agent_researcher":
             if debug: print(f"Asking the Agent Researcher")
-            agent_prompt = f"You are a professional researcher and analyst. Use the information and instructions provided to research and provide feedback. Question: {tool_args['information']}"
+            agent_prompt = f"You are a professional researcher and analyst. Use the information and instructions provided to research and provide feedback to the original question: {prompt}. Information and instructions: {tool_args['information']}"
             self.conversation_history[user].append({
                 'role': 'user',
                 'content': agent_prompt
@@ -123,7 +166,7 @@ class OllamaOrchestrator(OllamaMulti):
             results = self.llama3_1_agent.generate(user, agent_prompt)
         elif tool_name == "agent_mathmatician":
             if debug: print(f"Asking the Agent Mathematician")
-            agent_prompt = f"You are a professional mathematician. Use the information and instructions provided to solve the problem. Question: {tool_args['problem']}"
+            agent_prompt = f"You are a professional mathematician. Use the information and instructions provided to solve the original question: {prompt}. Information and instructions: {tool_args['problem']}"
             self.conversation_history[user].append({
                 'role': 'user',
                 'content': agent_prompt

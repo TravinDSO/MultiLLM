@@ -74,7 +74,7 @@ function adjustLayout() {
     if (llmBlocks.length === 1) {
         llmBlocks[0].style.flex = '1 1 100%';
     } else if (llmBlocks.length === 2) {
-        llmBlocks.forEach(block => block.style.flex = '1 1 48%');
+        llmBlocks.forEach(block => block.style.flex = '1 1 30%');
     } else {
         llmBlocks.forEach(block => block.style.flex = '1 1 30%');
     }

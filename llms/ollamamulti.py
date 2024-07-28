@@ -52,7 +52,7 @@ class OllamaMulti():
                 else:
                     tool_args = json.loads(tool_call['function']['arguments'])
 
-                tool_response = self.handle_tool(user, tool_name, tool_args)
+                tool_response = self.handle_tool(user, tool_name, tool_args, prompt)
 
                 self.conversation_history[user].append({
                     'role': 'tool',
@@ -78,7 +78,7 @@ class OllamaMulti():
         })
         return self.assistant_message
 
-    def handle_tool(self, user, tool_name, tool_args):
+    def handle_tool(self, user, tool_name, tool_args, prompt):
         return
 
     def summarize_conversation(self, user, tool_use=False):

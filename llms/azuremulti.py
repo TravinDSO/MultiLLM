@@ -17,6 +17,7 @@ class AzureMulti():
         self.openai_assistant_thread = {}
         self.info_link = info_link
         self.wait_limit = int(wait_limit)
+        self.agent_instructions = None
         self.number_of_responses = 0
         self.conversation_history = {}
         self.type = type
@@ -105,7 +106,7 @@ class AzureMulti():
         # Check if the user has an Azure OpenAI ASSISTANT and create one if not
         if user not in self.openai_assistant_id:
             try:
-                self.openai_assistant_id[user] = self.client.beta.assistants.create(model=self.model, tools=self.tools)
+                self.openai_assistant_id[user] = self.client.beta.assistants.create(model=self.model,tools=self.tools,instructions=self.agent_instructions)
             except Exception as e:
                 print(f'Could not create Azure Assistant: {e}')
 
