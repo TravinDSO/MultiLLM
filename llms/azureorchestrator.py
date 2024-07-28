@@ -116,12 +116,20 @@ class AzureOrchestrator(AzureMulti):
         debug = True # Set to True to print debug information
         args = json.loads(tool.function.arguments)
         if tool_name == "generate_image":
-            results =  self.image_generate(user, args['prompt'])  # image gen is already part of the OpenaiMulti class
             if debug: print(f"Generating an image (dall-e-3)")
+            results =  self.image_generate(user, args['prompt'])  # image gen is already part of the OpenaiMulti class
         elif tool_name == "web_search":
-            top_result_link, page_text = self.websearch.search(args['prompt'])
-            results = f'Top search result link: {top_result_link}\nPage text: {page_text}'
             if debug: print(f"Searching the web (Google)")
+            web_info = ""
+            web_data = self.websearch.search(args['prompt'], num_results=3)
+            if web_data is None:
+                results = "No search results found"
+            else:
+                # Get each link and page text from the search results
+                for link, page_text in web_data:
+                    #append the link and page test
+                    web_info += f"Link: {link}\nPage Text: {page_text}\n"
+                results = f'Your search to answer the question produced the following results:\n{web_info}'
         elif tool_name == "agent_writer":
             if debug: print(f"Asking the Agent Writer (Claude)")
             self.claude_agent.agent_instructions = "You are a professional writer. Use the information and instructions provided to write a response."
