@@ -7,7 +7,7 @@ from llms.ollamamulti import OllamaMulti
 from llms.tools.google_search import GoogleSearch
 
 # Inherit from the OpenaiMulti class
-class ExampleOrchestrator(OpenaiMulti):
+class OpenaiOrchestrator(OpenaiMulti):
     def __init__(self, api_key,model='gpt-4o',info_link='',wait_limit=300, type='chat',google_key="",google_cx="",claude_key=""):
         # Call the parent class constructor
         super().__init__(api_key,model,info_link,wait_limit,type)
@@ -20,12 +20,15 @@ class ExampleOrchestrator(OpenaiMulti):
         self.agent_instructions = """
         You are an orchestrator agent. You should maximize the use of the tools available to you.
         You will always make use of the web_search tool to find real-time information that may not be available in the model.
+        For web_search, you may also ask follow-up questions to get more information.
         Links should always be HTML formatted using href so they can be clicked on. Example: <a href="https://www.example.com" target"_blank">Page Title</a>
         Images responses should be formatted in HTML to display the image. Example: <img src="https://www.example.com/image.jpg" alt="image">
         Use the agent_mathmatician tool when attempting to solve mathmatical or logical problems. Include all supporting information in the prompt.
         Use the agent_researcher tool when attempting to respond to highly factual or technical prompts. This tool will provide you with feedback to improve your response.
         All final responses should flow through the agent_writer tool to generate a response.
         """
+
+        # Default tools available through the native orchestrator
         self.tools = [
             {
             "type": "function",
@@ -43,7 +46,12 @@ class ExampleOrchestrator(OpenaiMulti):
                     "required": ["prompt"]
                     }
                 }
-            },{
+            }
+        ]
+
+        # Additional tools created for the orchestrator
+        self.tools += [
+            {
             "type": "function",
             "function": {
                     "name": "web_search",
@@ -59,7 +67,12 @@ class ExampleOrchestrator(OpenaiMulti):
                     "required": ["prompt"]
                     }
                 }
-            },{
+            }
+        ]
+
+        # Agents available to the orchestrator
+        self.tools += [   
+            {
             "type": "function",
             "function": {
                     "name": "agent_writer",
@@ -116,12 +129,20 @@ class ExampleOrchestrator(OpenaiMulti):
         debug = True # Set to True to print debug information
         args = json.loads(tool.function.arguments)
         if tool_name == "generate_image":
-            results =  self.image_generate(user, args['prompt'])  # image gen is already part of the OpenaiMulti class
             if debug: print(f"Generating an image (dall-e-3)")
+            results =  self.image_generate(user, args['prompt'])  # image gen is already part of the OpenaiMulti class
         elif tool_name == "web_search":
-            top_result_link, page_text = self.websearch.search(args['prompt'])
-            results = f'Top search result link: {top_result_link}\nPage text: {page_text}'
             if debug: print(f"Searching the web (Google)")
+            web_info = ""
+            web_data = self.websearch.search(args['prompt'], num_results=3)
+            if web_data is None:
+                results = "No search results found"
+            else:
+                # Get each link and page text from the search results
+                for link, page_text in web_data:
+                    #append the link and page test
+                    web_info += f"Link: {link}\nPage Text: {page_text}\n"
+                results = f'Your search to answer the question produced the following results:\n{web_info}'
         elif tool_name == "agent_writer":
             if debug: print(f"Asking the Agent Writer (Claude)")
             self.claude_agent.agent_instructions = "You are a professional writer. Use the information and instructions provided to write a response."

@@ -1,96 +1,123 @@
 import requests
+import ollama
+import json
+import time
 
 class OllamaMulti():
-    def __init__(self, api_base_url='http://localhost:11434',model = 'llama3', info_link='https://ollama.com/library'):
+    def __init__(self, api_base_url='http://localhost:11434', model='llama3.1', info_link='https://ollama.com/library', wait_limit=300):
         self.api_base_url = api_base_url
         self.model = model
-        self.headers = {
-            'Content-Type': 'application/json'
-        }
         self.conversation_history = {}
         self.info_link = info_link
+        self.wait_limit = wait_limit
+        self.agent_instructions = None
+        self.tools = []
+        self.verify_answers_asked = False
 
-    def generate(self, user, prompt, options=None, stream=False):
-
-        # Check if the user has a conversation history and create one if not
+    def generate(self, user, prompt, tool_use=True):
         if user not in self.conversation_history:
             self.conversation_history[user] = []
 
-        # Append the new user prompt to the conversation history
+        prompt_with_instructions = f'{self.agent_instructions}\nQuestion: {prompt}'
         self.conversation_history[user].append({
             'role': 'user',
-            'content': prompt
+            'content': prompt_with_instructions
         })
-        
-        payload = {
-            'model': self.model,
-            'messages': self.conversation_history[user],  # Use the conversation history
-            'stream': stream
-        }
-        
-        if options:
-            payload['options'] = options
 
-        response = requests.post(
-            f'{self.api_base_url}/api/chat',
-            headers=self.headers,
-            json=payload
-        )
-        
-        if stream:
-            responses = []
-            for line in response.iter_lines():
-                if line:
-                    responses.append(line.decode('utf-8'))
-            return responses
-        else:
-            if response.status_code == 200:
-                parsed_response = response.json()
-                assistant_message = parsed_response['message']['content']
-                # Append the assistant's response to the conversation history
-                self.conversation_history[user].append({
-                    'role': 'assistant',
-                    'content': assistant_message
-                })
-                return assistant_message
+        # First response from the model
+        try:
+            if tool_use:
+                self.response = ollama.chat(
+                    model=self.model,
+                    messages=self.conversation_history[user],
+                    tools=self.tools,
+                    stream=False
+                )
             else:
-                response.raise_for_status()
+                self.response = ollama.chat(
+                    model=self.model,
+                    messages=self.conversation_history[user],
+                    stream=False
+                )
+        except Exception as e:
+            print(f"Top level LLM request error: {e}")
+            return f"Top level LLM request error: {e}"
 
-    def summarize_conversation(self, user):
-        # Check if the user has a conversation history and create one if not
+        if self.response['message'].get('tool_calls'):
+            for tool_call in self.response['message']['tool_calls']:
+                tool_name = tool_call['function']['name']
+
+                if isinstance(tool_call['function']['arguments'], dict):
+                    tool_args = tool_call['function']['arguments']
+                else:
+                    tool_args = json.loads(tool_call['function']['arguments'])
+
+                tool_response = self.handle_tool(user, tool_name, tool_args, prompt)
+
+                self.conversation_history[user].append({
+                    'role': 'tool',
+                    'content': tool_response
+                })
+
+            # Process the response again after the tool calls
+            try:
+                self.response = ollama.chat(
+                    model=self.model,
+                    messages=self.conversation_history[user],
+                    tools=self.tools,
+                    stream=False
+                )
+            except Exception as e:
+                print(f"Tool response error: {e}")
+                return f"Tool response error: {e}"
+
+        self.assistant_message = self.response['message']['content']
+        self.conversation_history[user].append({
+            'role': 'assistant',
+            'content': self.assistant_message
+        })
+        return self.assistant_message
+
+    def handle_tool(self, user, tool_name, tool_args, prompt):
+        return
+
+    def summarize_conversation(self, user, tool_use=False):
         if user not in self.conversation_history:
-            # Short-circuit if the user has no conversation history and return a message informing them of this
-            self.conversation_history[user] = []
             return "No conversation history found."
-        
-        prompt = 'Summarize the current conversation. If code was generated, preserve it, presenting the most complete version to the user.'
+
+        # Create a string that combines all user and assistant responses
+        for item in self.conversation_history[user]:
+            if item['role'] == 'user':
+                conversation = item['content']
+            elif item['role'] == 'assistant':
+                conversation += f'\n{item["content"]}'
+
+        prompt = f'Summarize this conversation: {conversation}. If code was generated, preserve it, presenting the most complete version to the user.'
         return self.generate(user, prompt)
 
     def check_for_previous_conversation(self, user):
-        # Check if the user has actual conversation history in self.conversation_history
         if user in self.conversation_history and len(self.conversation_history[user]) > 1:
             return True
 
-    def clear_conversation(self,user):
+    def clear_conversation(self, user):
         self.conversation_history[user] = []
         return "Conversation cleared."
 
 # Test Cell
 # Please do not modify
-# The following test cell is used to test the implementation of the `OllamaModel` class to ensure it works as expected.
+# The following test cell is used to test the implementation of the `OllamaMulti` class to ensure it works as expected.
 
-# Verify the file is being run directly
 if __name__ == '__main__':
     try:
         ollama_test = OllamaMulti()
-        response = ollama_test.generate('1+1?')
+        response = ollama_test.generate('user', 'Why is the sky blue?')
         print(response)
-        response = ollama_test.generate('Why?')
-        print(response)
-        response = ollama_test.generate('What was the original question?')
-        print(response)
-        response = ollama_test.clear_conversation()
-        response = ollama_test.generate('What was the original question?')
-        print(response)
+        #response = ollama_test.generate('user', 'Tell me more.')
+        #print(response)
+        #response = ollama_test.generate('user', 'What was the original question?')
+        #print(response)
+        #response = ollama_test.clear_conversation('user')
+        #response = ollama_test.generate('user', 'What was the original question?')
+        #print(response)
     except Exception as e:
         print(e)
