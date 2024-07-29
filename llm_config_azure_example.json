@@ -8,20 +8,49 @@
                 "endpoint": "AZURE_OPENAI_API_ENDPOINT",
                 "version": "AZURE_OPENAI_API_VERSION",
                 "info_link": "https://openai.com/index/hello-gpt-4o/",
-                "use_assistants": "True",
-                "wait_limit": "30"
+                "type": "assistant",
+                "wait_limit": "300"
             }
         },
-        "Azure GPT35": {
-            "class": "AzureMulti",
+        "Azure Orchestrator": {
+            "class": "AzureOrchestrator",
             "params": {
                 "api_key": "AZURE_OPENAI_API_KEY",
-                "model":"GPT35",
+                "model":"gpt-4o",
                 "endpoint": "AZURE_OPENAI_API_ENDPOINT",
                 "version": "AZURE_OPENAI_API_VERSION",
                 "info_link": "https://openai.com/index/hello-gpt-4o/",
-                "use_assistants": "False",
-                "wait_limit": "30"
+                "type": "assistant",
+                "wait_limit": "300",
+                "google_key": "GOOGLE_API_KEY",
+                "google_cx":"GOOGLE_CX",
+                "confluence_url": "CONFLUENCE_URL",
+                "confluence_token": "CONFLUENCE_TOKEN",
+                "jira_url": "JIRA_URL",
+                "jira_token": "JIRA_PERSONAL_ACCESS_TOKEN"
+            }
+        },
+        "Llama 3.1 (local)": {
+            "class": "OllamaMulti",
+            "params": {
+                "api_base_url": "OLLAMA_API_BASE_URL",
+                "model": "llama3.1:latest",
+                "info_link": "https://ollama.com/"
+            }
+        },
+        "Ollama Orchestrator": {
+            "class": "OllamaOrchestrator",
+            "params": {
+                "api_base_url": "OLLAMA_API_BASE_URL",
+                "model": "llama3.1:latest",
+                "info_link": "https://ollama.com/",
+                "wait_limit": "300",
+                "google_key": "GOOGLE_API_KEY",
+                "google_cx":"GOOGLE_CX",
+                "confluence_url": "CONFLUENCE_URL",
+                "confluence_token": "CONFLUENCE_TOKEN",
+                "jira_url": "JIRA_URL",
+                "jira_token": "JIRA_PERSONAL_ACCESS_TOKEN"
             }
         }
     }
