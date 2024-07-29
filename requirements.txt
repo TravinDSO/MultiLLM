@@ -1,5 +1,7 @@
 requests
-Flask==2.0.2
-Werkzeug==2.0.3
-openai==1.35.7
-python-dotenv==0.19.0
+openai
+ollama
+Flask
+Werkzeug
+python-dotenv
+beautifulsoup4
