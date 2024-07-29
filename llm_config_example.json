@@ -4,31 +4,23 @@
             "class": "OpenaiMulti",
             "params": {
                 "api_key": "OPENAI_API_KEY",
-                "assistant_id": "OPENAI_ASSISTANT_ID",
                 "model": "gpt-4o",
                 "info_link": "https://openai.com/index/hello-gpt-4o/",
                 "wait_limit": "300",
                 "type": "assistant"
             }
         },
-        "Openai GPT 3.5 Turbo": {
-            "class": "OpenaiMulti",
+        "Openai Orchestrator": {
+            "class": "OpenaiOrchestrator",
             "params": {
                 "api_key": "OPENAI_API_KEY",
-                "model": "gpt-3.5-turbo",
+                "model": "gpt-4o",
                 "info_link": "https://openai.com/index/hello-gpt-4o/",
                 "wait_limit": "300",
-                "type": "chat"
-            }
-        },
-        "Openai Dall-e-3": {
-            "class": "OpenaiMulti",
-            "params": {
-                "api_key": "OPENAI_API_KEY",
-                "model": "dall-e-3",
-                "info_link": "https://openai.com/index/hello-gpt-4o/",
-                "wait_limit": "300",
-                "type": "image"
+                "type": "assistant",
+                "google_key": "GOOGLE_API_KEY",
+                "google_cx":"GOOGLE_CX",
+                "claude_key": "CLAUDE_API_KEY"
             }
         },
         "Claude 3.5": {
@@ -39,12 +31,27 @@
                 "info_link": "https://www.anthropic.com/news/claude-3-5-sonnet"
             }
         },
-        "Codeqwen 7b (local)": {
+        "Llama 3.1 (local)": {
             "class": "OllamaMulti",
             "params": {
                 "api_base_url": "OLLAMA_API_BASE_URL",
-                "model": "codeqwen:7b",
-                "info_link": "https://ollama.com/library/codeqwen:7b"
+                "model": "llama3.1:latest",
+                "info_link": "https://ollama.com/"
+            }
+        },
+        "Ollama Orchestrator": {
+            "class": "OllamaOrchestrator",
+            "params": {
+                "api_base_url": "OLLAMA_API_BASE_URL",
+                "model": "llama3.1:latest",
+                "info_link": "https://ollama.com/",
+                "wait_limit": "300",
+                "google_key": "GOOGLE_API_KEY",
+                "google_cx":"GOOGLE_CX",
+                "confluence_url": "CONFLUENCE_URL",
+                "confluence_token": "CONFLUENCE_TOKEN",
+                "jira_url": "JIRA_URL",
+                "jira_token": "JIRA_PERSONAL_ACCESS_TOKEN"
             }
         }
     }
