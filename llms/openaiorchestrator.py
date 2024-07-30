@@ -1,26 +1,30 @@
 # This is an example of an orchestrator that uses the OpenaiMulti class to orchestrate a number of LLMs as agents
 
 import json
+import datetime
 from llms.openaimulti import OpenaiMulti
 from llms.claudemulti import ClaudeMulti
 from llms.ollamamulti import OllamaMulti
-from llms.tools.google_search import GoogleSearch
+from llms.agents.websearch_agent import OpenAIWebsearchAgent
+from llms.tools.weather import WeatherChecker
 
 # Inherit from the OpenaiMulti class
 class OpenaiOrchestrator(OpenaiMulti):
-    def __init__(self, api_key,model='gpt-4o',info_link='',wait_limit=300, type='chat',google_key="",google_cx="",claude_key=""):
+    def __init__(self, api_key,model='gpt-4o',info_link='',wait_limit=300, type='chat',
+                 google_key="",google_cx="",claude_key="",openweathermap_key=""):
         # Call the parent class constructor
         super().__init__(api_key,model,info_link,wait_limit,type)
-        self.websearch = GoogleSearch(google_key,google_cx)
 
         #Agents
         self.claude_agent = ClaudeMulti(claude_key)
+        self.websearch_agent = OpenAIWebsearchAgent(api_key=api_key,model=model,type = 'assistant',google_key=google_key,google_cx=google_cx)
         self.math_agent = OllamaMulti('llama3.1:latest')
+        self.weather_checker = WeatherChecker(openweathermap_key)
 
         self.agent_instructions = """
         You are an orchestrator agent. You should maximize the use of the tools available to you.
-        You will always make use of the web_search tool to find real-time information that may not be available in the model.
-        For web_search, you may also ask follow-up questions to get more information.
+        Use the agent_websearch tool to find real-time information that may not be available in the model.
+        For agent_websearch you may also ask follow-up questions to get more information.
         Links should always be HTML formatted using href so they can be clicked on. Example: <a href="https://www.example.com" target"_blank">Page Title</a>
         Images responses should be formatted in HTML to display the image. Example: <img src="https://www.example.com/image.jpg" alt="image">
         Use the agent_mathmatician tool when attempting to solve mathmatical or logical problems. Include all supporting information in the prompt.
@@ -46,26 +50,51 @@ class OpenaiOrchestrator(OpenaiMulti):
                     "required": ["prompt"]
                     }
                 }
-            }
-        ]
-
-        # Additional tools created for the orchestrator
-        self.tools += [
-            {
+            },{
             "type": "function",
             "function": {
-                    "name": "web_search",
-                    "description": "Always search the web for real-time information that may not be available in the model. If you don't find what you need, try again.",
+                    "name": "get_weather",
+                    "description": "Check the current weather for a location.",
                     "parameters": {
                     "type": "object",
                     "properties": {
-                        "prompt": {
+                        "latitude": {
                         "type": "string",
-                        "description": "Your search string to find information on the web. Use this information in your response."
+                        "description": "The latitude decimal (-90; 90) of the location to check the current weather."
+                        },
+                        "longitude": {
+                        "type": "string",
+                        "description": "The longitude decimal (-180; 180) of the location to check the current weather."
                         }
                     },
-                    "required": ["prompt"]
+                    "required": ["latitude" , "longitude"]
                     }
+                }
+            },{
+            "type": "function",
+            "function": {
+                    "name": "get_forecast",
+                    "description": "Check the weather forecast for a location.",
+                    "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "latitude": {
+                        "type": "string",
+                        "description": "The latitude decimal (-90; 90) of the location to check the weather forecast."
+                        },
+                        "longitude": {
+                        "type": "string",
+                        "description": "The longitude decimal (-180; 180) of the location to check the weather forecast."
+                        }
+                    },
+                    "required": ["latitude" , "longitude"]
+                    }
+                }
+            },{
+            "type": "function",
+            "function": {
+                    "name": "date_time",
+                    "description": "Obtain the current date and time."
                 }
             }
         ]
@@ -120,6 +149,22 @@ class OpenaiOrchestrator(OpenaiMulti):
                     "required": ["prompt"]
                     }
                 }
+            },{
+            "type": "function",
+            "function": {
+                    "name": "agent_websearch",
+                    "description": "Use this agent to search websites for more current or realtime information. Include supporting information if nessesary.",
+                    "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "prompt": {
+                        "type": "string",
+                        "description": "Prompt, asking the agent to search the web for information related to the user's question/problem."
+                        }
+                    },
+                    "required": ["prompt"]
+                    }
+                }
             }
         ]
 
@@ -131,18 +176,15 @@ class OpenaiOrchestrator(OpenaiMulti):
         if tool_name == "generate_image":
             if debug: print(f"Generating an image (dall-e-3)")
             results =  self.image_generate(user, args['prompt'])  # image gen is already part of the OpenaiMulti class
-        elif tool_name == "web_search":
-            if debug: print(f"Searching the web (Google)")
-            web_info = ""
-            web_data = self.websearch.search(args['prompt'], num_results=3)
-            if web_data is None:
-                results = "No search results found"
-            else:
-                # Get each link and page text from the search results
-                for link, page_text in web_data:
-                    #append the link and page test
-                    web_info += f"Link: {link}\nPage Text: {page_text}\n"
-                results = f'Your search to answer the question produced the following results:\n{web_info}'
+        elif tool_name == "get_weather":
+            if debug: print(f"Getting the weather")
+            results = json.dumps(self.weather_checker.get_weather(args['latitude'], args['longitude']))
+        elif tool_name == "get_forecast":
+            if debug: print(f"Getting the weather forecast")
+            results = json.dumps(self.weather_checker.get_forecast(args['latitude'], args['longitude']))
+        elif tool_name == "date_time":
+            if debug: print(f"Getting the date and time")
+            results = f"The current date and time is: {datetime.datetime.now()}"
         elif tool_name == "agent_writer":
             if debug: print(f"Asking the Agent Writer (Claude)")
             self.claude_agent.agent_instructions = "You are a professional writer. Use the information and instructions provided to write a response."
@@ -154,7 +196,18 @@ class OpenaiOrchestrator(OpenaiMulti):
         elif tool_name == "agent_mathmatician":
             if debug: print(f"Asking the Agent Mathmatician (Local: Llama3.1 7b)")
             results = self.math_agent.generate(user, args['prompt'])
+        elif tool_name == "agent_websearch":
+            if debug: print(f"Asking the Agent Websearcher (OpenAI)")
+            results = self.websearch_agent.generate(user, args['prompt'])
         else:
             results =  "Tool not supported"
         
         return results
+    
+    # Override and run the clear_conversation method
+    def clear_conversation(self, user):
+        super().clear_conversation(user)
+        self.websearch_agent.clear_conversation(user)
+        self.claude_agent.clear_conversation(user)
+        self.math_agent.clear_conversation(user)
+        return "Conversation cleared"

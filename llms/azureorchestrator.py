@@ -1,44 +1,45 @@
 # This is an example of an orchestrator that uses the OpenaiMulti class to orchestrate a number of LLMs as agents
 
 import json
+import datetime
 from llms.azuremulti import AzureMulti
 from llms.ollamamulti import OllamaMulti
-from llms.tools.google_search import GoogleSearch
-from llms.tools.jira_search import JiraSearch
 from llms.agents.confluence_agent import AzureConfluenceAgent
 from llms.agents.jira_agent import AzureJiraAgent
+from llms.agents.websearch_agent import AzureWebsearchAgent
+from llms.tools.weather import WeatherChecker
 
 # Inherit from the OpenaiMulti class
 class AzureOrchestrator(AzureMulti):
     def __init__(self, api_key,model='gpt-4o',endpoint='',version='',info_link='',type='assistant',
                  wait_limit=300, google_key="",google_cx="",confluence_url="",confluence_token="",
-                 jira_url="",jira_token=""):
+                 jira_url="",jira_token="",openweathermap_key=""):
         # Call the parent class constructor
         super().__init__(api_key,model,endpoint,version,info_link,wait_limit,type)
-
-        # Tools
-        self.websearch = GoogleSearch(google_key,google_cx)
-        self.jira_search = JiraSearch(jira_url, jira_token)
 
         #Agents
         self.azure_agent = AzureMulti(api_key=api_key,model=model,endpoint=endpoint,version=version,type = 'assistant')
         self.confluence_agent = AzureConfluenceAgent(api_key=api_key,model=model,endpoint=endpoint,version=version,type = 'assistant',confluence_url=confluence_url,confluence_token=confluence_token)
         self.jira_agent = AzureJiraAgent(api_key=api_key,model=model,endpoint=endpoint,version=version,type = 'assistant',jira_url=jira_url,jira_token=jira_token)
+        self.websearch_agent = AzureWebsearchAgent(api_key=api_key,model=model,endpoint=endpoint,version=version,type = 'assistant',google_key=google_key,google_cx=google_cx)
         self.math_agent = OllamaMulti('llama3.1:latest')
+        self.weather_checker = WeatherChecker(openweathermap_key)
 
         self.agent_instructions = """
         You are an orchestrator agent. You should maximize the use of the tools available to you.
-        You will always make use of the web_search tool to find real-time information that may not be available in the model.
+        Use the get_weather and get_forcast tools to check the current weather, temperature and forecast for a location.
+        Use the agent_websearch tool to find real-time information that may not be available in the model.
         If someone asks for information from the Wiki or Confluence, you should as the agent_confluence tool.
         If someone asks for information from JIRA, you should use the agent_jira tool.
         The agent_jira and agent_confluence tools also contain information relating to the our business, Cvent.
-        For web_search, agent_jira and the agent_confluence tools, you may also ask follow-up questions to get more information.
+        For agent_websearch, agent_jira and the agent_confluence tools, you may also ask follow-up questions to get more information.
         Links should always be HTML formatted using href so they can be clicked on. Example: <a href="https://www.example.com" target"_blank">Page Title</a>
         Images responses should be formatted in HTML to display the image. Example: <img src="https://www.example.com/image.jpg" alt="image">
         Use the agent_mathmatician tool when attempting to solve mathmatical or logical problems. Include all supporting information in the prompt.
         Use the agent_researcher tool when attempting to respond to highly factual or technical prompts. This tool will provide you with feedback to improve your response.
         The agent_writer tool can be used to enhance your response with professional writing skills.
         """
+
         # Default tools available through the native orchestrator
         self.tools = [
             {
@@ -57,26 +58,51 @@ class AzureOrchestrator(AzureMulti):
                     "required": ["prompt"]
                     }
                 }
-            }
-        ]
-
-        # Additional tools created for the orchestrator
-        self.tools += [
-            {
+            },{
             "type": "function",
             "function": {
-                    "name": "web_search",
-                    "description": "Always search the web for real-time information that may not be available in the model. If you don't find what you need, try again.",
+                    "name": "get_weather",
+                    "description": "Check the current weather for a location.",
                     "parameters": {
                     "type": "object",
                     "properties": {
-                        "prompt": {
+                        "latitude": {
                         "type": "string",
-                        "description": "Your search string to find information on the web. Use this information in your response."
+                        "description": "The latitude decimal (-90; 90) of the location to check the current weather."
+                        },
+                        "longitude": {
+                        "type": "string",
+                        "description": "The longitude decimal (-180; 180) of the location to check the current weather."
                         }
                     },
-                    "required": ["prompt"]
+                    "required": ["latitude" , "longitude"]
                     }
+                }
+            },{
+            "type": "function",
+            "function": {
+                    "name": "get_forecast",
+                    "description": "Check the weather forecast for a location.",
+                    "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "latitude": {
+                        "type": "string",
+                        "description": "The latitude decimal (-90; 90) of the location to check the weather forecast."
+                        },
+                        "longitude": {
+                        "type": "string",
+                        "description": "The longitude decimal (-180; 180) of the location to check the weather forecast."
+                        }
+                    },
+                    "required": ["latitude" , "longitude"]
+                    }
+                }
+            },{
+            "type": "function",
+            "function": {
+                    "name": "date_time",
+                    "description": "Obtain the current date and time."
                 }
             }
         ]
@@ -163,6 +189,22 @@ class AzureOrchestrator(AzureMulti):
                     "required": ["prompt"]
                     }
                 }
+            },{
+            "type": "function",
+            "function": {
+                    "name": "agent_websearch",
+                    "description": "Use this agent to search websites for more current or realtime information. Include supporting information if nessesary.",
+                    "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "prompt": {
+                        "type": "string",
+                        "description": "Prompt, asking the agent to search the web for information related to the user's question/problem."
+                        }
+                    },
+                    "required": ["prompt"]
+                    }
+                }
             }
         ]
 
@@ -174,18 +216,15 @@ class AzureOrchestrator(AzureMulti):
         if tool_name == "generate_image":
             if debug: print(f"Generating an image (dall-e-3)")
             results =  self.image_generate(user, args['prompt'])  # image gen is already part of the OpenaiMulti class
-        elif tool_name == "web_search":
-            if debug: print(f"Searching the web (Google): {args['prompt']}")
-            web_info = ""
-            web_data = self.websearch.search(args['prompt'], num_results=2)
-            if web_data is None:
-                results = "No search results found"
-            else:
-                # Get each link and page text from the search results
-                for link, page_text in web_data:
-                    #append the link and page test
-                    web_info += f"Link: {link}\nPage Text: {page_text}\n"
-                results = f'Your search to answer the question produced the following results:\n{web_info}'
+        elif tool_name == "get_weather":
+            if debug: print(f"Getting the weather")
+            results = json.dumps(self.weather_checker.get_weather(args['latitude'], args['longitude']))
+        elif tool_name == "get_forecast":
+            if debug: print(f"Getting the weather forecast")
+            results = json.dumps(self.weather_checker.get_forecast(args['latitude'], args['longitude']))
+        elif tool_name == "date_time":
+            if debug: print(f"Getting the date and time")
+            results = f"The current date and time is: {datetime.datetime.now()}"
         elif tool_name == "agent_writer":
             if debug: print(f"Asking the Agent Writer (Azure)")
             self.azure_agent.agent_instructions = "You are a professional writer. Use the information and instructions provided to write a response."
@@ -200,9 +239,9 @@ class AzureOrchestrator(AzureMulti):
         elif tool_name == "agent_confluence":
             if debug: print(f"Asking the Agent Confluence (Azure)")
             results = self.confluence_agent.generate(user, args['prompt'])
-        elif tool_name == "agent_jira":
-            if debug: print(f"Asking the Agent JIRA (Azure)")
-            results = self.jira_agent.generate(user, args['prompt'])
+        elif tool_name == "agent_websearch":
+            if debug: print(f"Asking the Agent Websearcher (Azure)")
+            results = self.websearch_agent.generate(user, args['prompt'])
         else:
             results =  "Tool not supported"
         
@@ -214,5 +253,6 @@ class AzureOrchestrator(AzureMulti):
         self.azure_agent.clear_conversation(user)
         self.confluence_agent.clear_conversation(user)
         self.jira_agent.clear_conversation(user)
+        self.websearch_agent.clear_conversation(user)
         self.math_agent.clear_conversation(user)
         return "Conversation cleared"
