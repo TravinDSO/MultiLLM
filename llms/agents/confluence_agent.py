@@ -22,7 +22,7 @@ class AzureConfluenceAgent(AzureMulti):
         If you don't find what you need, try using the confluence_search tool again.
         Verify the information you find is accurate and relevant prior to responsing to the user.
         Include supporting URLs to the Confleunce pages in your response.
-        Your response can only be 512kb in size.
+        Your response can be no larger than 10k characters.
         """
         # Additional tools created for the orchestrator
         self.tools = [

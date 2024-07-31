@@ -11,8 +11,8 @@ from llms.tools.weather import WeatherChecker
 
 # Inherit from the OpenaiMulti class
 class AzureOrchestrator(AzureMulti):
-    def __init__(self, api_key,model='gpt-4o',endpoint='',version='',info_link='',type='assistant',
-                 wait_limit=300, google_key="",google_cx="",confluence_url="",confluence_token="",
+    def __init__(self, api_key,model='gpt-4o',endpoint='',version='',info_link='',type='assistant', wait_limit=300,
+                 google_key="",google_cx="",confluence_url="",confluence_token="",
                  jira_url="",jira_token="",openweathermap_key=""):
         # Call the parent class constructor
         super().__init__(api_key,model,endpoint,version,info_link,wait_limit,type)
@@ -240,6 +240,9 @@ class AzureOrchestrator(AzureMulti):
         elif tool_name == "agent_confluence":
             if debug: print(f"Asking the Agent Confluence (Azure)")
             results = self.confluence_agent.generate(user, args['prompt'])
+        elif tool_name == "agent_jira":
+            if debug: print(f"Asking the Agent JIRA (Azure)")
+            results = self.jira_agent.generate(user, args['prompt'])
         elif tool_name == "agent_websearch":
             if debug: print(f"Asking the Agent Websearcher (Azure)")
             results = self.websearch_agent.generate(user, args['prompt'])

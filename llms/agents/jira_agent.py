@@ -18,7 +18,7 @@ class AzureJiraAgent(AzureMulti):
         As this is your primary job, you will always use the jira_search tool to search for information in the Atlassian JIRA system.
         If you don't find what you need, try using the jira_search tool again.
         Verify the information you find is accurate and relevant prior to responsing to the user.
-        Your response can only be 512kb in size.
+        Your response can be no larger than 10k characters.
         """
         # Additional tools created for the orchestrator
         self.tools = [
