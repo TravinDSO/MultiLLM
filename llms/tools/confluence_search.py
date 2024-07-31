@@ -43,9 +43,11 @@ class ConfluenceSearch:
                     page_content = page_response.json()
                     
                     if 'body' in page_content and 'storage' in page_content['body']:
-                        content = BeautifulSoup(page_content['body']['storage']['value'], 'html.parser').get_text()
+                        title = page_content['title']
+                        url = f"{self.url}/pages/viewpage.action?pageId={page_id}"
+                        body = BeautifulSoup(page_content['body']['storage']['value'], 'html.parser').get_text()
+                        content = f"----\nPage: {title}\n{title} URL: {url}\n{title} Content: {body}\n----\n"
                         page_contents.append(content)
-
             return page_contents
         except Exception as e:
             print(f"An error occurred: {str(e)}")
@@ -59,7 +61,7 @@ if __name__ == '__main__':
         load_dotenv('environment.env', override=True)
 
         confluence_search = ConfluenceSearch(os.getenv('CONFLUENCE_URL'), os.getenv('CONFLUENCE_TOKEN'))
-        results = confluence_search.search('Mission Central', num_results=3)
+        results = confluence_search.search('type=page AND text~"Myers-Briggs workshops"', num_results=3)
         for result in results:
             print(f"Page text: {result}")
     except Exception as e:

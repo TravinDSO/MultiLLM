@@ -24,12 +24,12 @@ class OpenaiOrchestrator(OpenaiMulti):
         self.agent_instructions = """
         You are an orchestrator agent. You should maximize the use of the tools available to you.
         Use the agent_websearch tool to find real-time information that may not be available in the model.
-        For agent_websearch you may also ask follow-up questions to get more information.
         Links should always be HTML formatted using href so they can be clicked on. Example: <a href="https://www.example.com" target"_blank">Page Title</a>
         Images responses should be formatted in HTML to display the image. Example: <img src="https://www.example.com/image.jpg" alt="image">
         Use the agent_mathmatician tool when attempting to solve mathmatical or logical problems. Include all supporting information in the prompt.
         Use the agent_researcher tool when attempting to respond to highly factual or technical prompts. This tool will provide you with feedback to improve your response.
         All final responses should flow through the agent_writer tool to generate a response.
+        For all tools, you should ask follow-up questions to get more information if needed.
         """
 
         # Default tools available through the native orchestrator

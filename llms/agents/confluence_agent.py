@@ -1,4 +1,5 @@
 import json
+import datetime
 from llms.azuremulti import AzureMulti
 from llms.tools.confluence_search import ConfluenceSearch
 
@@ -15,14 +16,23 @@ class AzureConfluenceAgent(AzureMulti):
 
         self.agent_instructions = """
         You are a specialized agent that can search Atlassian Confluence, for information.
+        Always use the date_time tool to check the current date and time.
         As this is your primary job, you will always use the confluence_CQL_search and confluence_site_search tools to search for information in the Atlassian Confluence system.
+        Ensure your CQL search only searches for pages and not other types of content.
         If you don't find what you need, try using the confluence_search tool again.
         Verify the information you find is accurate and relevant prior to responsing to the user.
+        Include supporting URLs to the Confleunce pages in your response.
         Your response can only be 512kb in size.
         """
         # Additional tools created for the orchestrator
         self.tools = [
             {
+            "type": "function",
+            "function": {
+                    "name": "date_time",
+                    "description": "Obtain the current date and time."
+                }
+            },{
             "type": "function",
             "function": {
                     "name": "confluence_CQL_search",
@@ -87,6 +97,9 @@ class AzureConfluenceAgent(AzureMulti):
                     #append the link and page test
                     confluence_info += f"Page Text: {page_text}\n"
                 results = f'Your search to answer the question produced the following results:\n{confluence_info}'
+        elif tool_name == "date_time":
+            if debug: print(f"Getting the date and time")
+            results = f"The current date and time is: {datetime.datetime.now()}"
         else:
             results =  "Tool not supported"
         

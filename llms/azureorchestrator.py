@@ -32,17 +32,24 @@ class AzureOrchestrator(AzureMulti):
         If someone asks for information from the Wiki or Confluence, you should as the agent_confluence tool.
         If someone asks for information from JIRA, you should use the agent_jira tool.
         If someone asks a business question, the agent_jira and agent_confluence tools should be asked as well.
-        For agent_websearch, agent_jira and the agent_confluence tools, you may also ask follow-up questions to get more information.
+        Always include supporting URLs in your response.
         Links should always be HTML formatted using href so they can be clicked on. Example: <a href="https://www.example.com" target"_blank">Page Title</a>
         Images responses should be formatted in HTML to display the image. Example: <img src="https://www.example.com/image.jpg" alt="image">
         Use the agent_mathmatician tool when attempting to solve mathmatical or logical problems. Include all supporting information in the prompt.
         Use the agent_researcher tool when attempting to respond to highly factual or technical prompts. This tool will provide you with feedback to improve your response.
         The agent_writer tool can be used to enhance your response with professional writing skills.
+        For all tools, you should ask follow-up questions to get more information if needed.
         """
 
         # Default tools available through the native orchestrator
         self.tools = [
             {
+            "type": "function",
+            "function": {
+                    "name": "date_time",
+                    "description": "Obtain the current date and time."
+                }
+            },{
             "type": "function",
             "function": {
                     "name": "generate_image",
@@ -97,12 +104,6 @@ class AzureOrchestrator(AzureMulti):
                     },
                     "required": ["latitude" , "longitude"]
                     }
-                }
-            },{
-            "type": "function",
-            "function": {
-                    "name": "date_time",
-                    "description": "Obtain the current date and time."
                 }
             }
         ]
