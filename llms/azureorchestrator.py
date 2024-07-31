@@ -31,7 +31,7 @@ class AzureOrchestrator(AzureMulti):
         Use the agent_websearch tool to find real-time information that may not be available in the model.
         If someone asks for information from the Wiki or Confluence, you should as the agent_confluence tool.
         If someone asks for information from JIRA, you should use the agent_jira tool.
-        The agent_jira and agent_confluence tools also contain information relating to the our business, Cvent.
+        If someone asks a business question, the agent_jira and agent_confluence tools should be asked as well.
         For agent_websearch, agent_jira and the agent_confluence tools, you may also ask follow-up questions to get more information.
         Links should always be HTML formatted using href so they can be clicked on. Example: <a href="https://www.example.com" target"_blank">Page Title</a>
         Images responses should be formatted in HTML to display the image. Example: <img src="https://www.example.com/image.jpg" alt="image">
