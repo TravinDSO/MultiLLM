@@ -27,7 +27,8 @@
                 "confluence_url": "CONFLUENCE_URL",
                 "confluence_token": "CONFLUENCE_TOKEN",
                 "jira_url": "JIRA_URL",
-                "jira_token": "JIRA_PERSONAL_ACCESS_TOKEN"
+                "jira_token": "JIRA_PERSONAL_ACCESS_TOKEN",
+                "openweathermap_key": "OPENWEATHERMAP_API_KEY"
             }
         },
         "Llama 3.1 (local)": {
@@ -36,21 +37,6 @@
                 "api_base_url": "OLLAMA_API_BASE_URL",
                 "model": "llama3.1:latest",
                 "info_link": "https://ollama.com/"
-            }
-        },
-        "Ollama Orchestrator": {
-            "class": "OllamaOrchestrator",
-            "params": {
-                "api_base_url": "OLLAMA_API_BASE_URL",
-                "model": "llama3.1:latest",
-                "info_link": "https://ollama.com/",
-                "wait_limit": "300",
-                "google_key": "GOOGLE_API_KEY",
-                "google_cx":"GOOGLE_CX",
-                "confluence_url": "CONFLUENCE_URL",
-                "confluence_token": "CONFLUENCE_TOKEN",
-                "jira_url": "JIRA_URL",
-                "jira_token": "JIRA_PERSONAL_ACCESS_TOKEN"
             }
         }
     }
