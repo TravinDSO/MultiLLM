@@ -1,4 +1,5 @@
 import os
+import logging
 from dotenv import load_dotenv
 from flask import Flask, render_template, request, jsonify, session, redirect, url_for
 from llm_manager import LLMManager
@@ -10,8 +11,13 @@ load_dotenv('environment.env', override=True)
 
 app = Flask(__name__)
 app.secret_key = os.getenv('SECRET_KEY')
+app.debug = False
 llm_manager = LLMManager()
 llm_logger = Logger()
+
+# Set the log level to WARNING to suppress HTTP request logs
+log = logging.getLogger('werkzeug')
+log.setLevel(logging.WARNING)
 
 def load_users():
     with open('users.json') as f:
@@ -70,6 +76,17 @@ def generate():
             return jsonify({'response': response})
         except Exception as e:
             return jsonify({'error': str(e)}), 500
+    else:
+        return jsonify({'error': 'LLM not found'}), 404
+
+@app.route('/extra_messages', methods=['GET'])
+def get_extra_messages():
+    llm_name = request.args.get('llm')
+    llm = llm_manager.get_llm(llm_name)
+    user = session['username']
+    if llm:
+        messages = llm.get_extra_messages(user)
+        return jsonify({'messages': messages})
     else:
         return jsonify({'error': 'LLM not found'}), 404
 

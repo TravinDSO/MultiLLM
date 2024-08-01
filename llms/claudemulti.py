@@ -10,6 +10,7 @@ class ClaudeMulti():
             'anthropic-version': '2023-06-01'
         }
         self.conversation_history = {}
+        self.extra_messages = {}
         self.info_link = info_link
         self.agent_instructions = ''
 
@@ -53,6 +54,14 @@ class ClaudeMulti():
             return assistant_message
         else:
             response.raise_for_status()
+
+    def get_extra_messages(self, user):
+        if user not in self.extra_messages:
+            self.extra_messages[user] = []  # Initialize the list if the key doesn't exist
+        messages = self.extra_messages[user]
+        self.extra_messages[user] = []  # Clear messages after fetching
+        return messages
+
 
     def summarize_conversation(self, user):
         # Check if the user has a conversation history and create one if not

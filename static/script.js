@@ -273,8 +273,36 @@ function toggleLLM(llm) {
     adjustLayout();
 }
 
-// Event listeners
+// Function to poll for extra messages
+function pollExtraMessages(llm) {
+    const outputDiv = document.getElementById(`${llm}-output`);
+
+    fetch(`/extra_messages?llm=${llm}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.messages) {
+                data.messages.forEach(message => {
+                    const messageDiv = document.createElement('div');
+                    messageDiv.innerHTML = message;
+                    outputDiv.prepend(messageDiv);  // Prepend to show the latest message on top
+                });
+            }
+        })
+        .catch(error => {
+            console.error('Error fetching extra messages:', error);
+        });
+
+    // Continue polling
+    setTimeout(() => pollExtraMessages(llm), 2000);
+}
+
 window.addEventListener('resize', adjustLayout);
 document.addEventListener('DOMContentLoaded', function() {
     checkLoginStatus();
+    // Add polling for each LLM
+    const llms = document.querySelectorAll('.llm-block');
+    llms.forEach(llm => {
+        const llmId = llm.id.split('-')[0];
+        pollExtraMessages(llmId);
+    });
 });

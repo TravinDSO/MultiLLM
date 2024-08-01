@@ -75,7 +75,7 @@ class AzureConfluenceAgent(AzureMulti):
         if tool_name == "confluence_CQL_search":
             if debug: print(f"Searching the Wiki (Confluence): {args['CQL']}")
             confluence_info = ""
-            confluence_data = self.confluence_search.search(args['CQL'], num_results=25)
+            confluence_data = self.confluence_search.search(args['CQL'], num_results=10)
             if confluence_data is None:
                 results = "No search results found"
             else:

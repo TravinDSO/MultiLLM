@@ -212,39 +212,38 @@ class AzureOrchestrator(AzureMulti):
     # override the handle_tool method
     def handle_tool(self, user, tool):
         tool_name = tool.function.name
-        debug = True # Set to True to print debug information
         args = json.loads(tool.function.arguments)
         if tool_name == "generate_image":
-            if debug: print(f"Generating an image (dall-e-3)")
+            self.extra_messages[user].append(f'<HR><i>Generating image using this prompt: {args["prompt"]}</i>')
             results =  self.image_generate(user, args['prompt'])  # image gen is already part of the OpenaiMulti class
         elif tool_name == "get_weather":
-            if debug: print(f"Getting the weather")
+            self.extra_messages[user].append(f'<HR><i>Getting the weather for latitude: {args["latitude"]} and longitude: {args["longitude"]}</i>')
             results = json.dumps(self.weather_checker.get_weather(args['latitude'], args['longitude']))
         elif tool_name == "get_forecast":
-            if debug: print(f"Getting the weather forecast")
+            self.extra_messages[user].append(f'<HR><i>Getting the forecast for latitude: {args["latitude"]} and longitude: {args["longitude"]}</i>')
             results = json.dumps(self.weather_checker.get_forecast(args['latitude'], args['longitude']))
         elif tool_name == "date_time":
-            if debug: print(f"Getting the date and time")
+            self.extra_messages[user].append(f'<HR><i>Getting the current date and time</i>')
             results = f"The current date and time is: {datetime.datetime.now()}"
         elif tool_name == "agent_writer":
-            if debug: print(f"Asking the Agent Writer (Azure)")
+            self.extra_messages[user].append(f'<HR><i>Asking the Agent Writer (Azure): {args["prompt"]}</i>')
             self.azure_agent.agent_instructions = "You are a professional writer. Use the information and instructions provided to write a response."
             results = self.azure_agent.generate(user, args['prompt'])
         elif tool_name == "agent_researcher":
-            if debug: print(f"Asking the Agent Researcher (Azure)")
+            self.extra_messages[user].append(f'<HR><i>Asking the Agent Researcher (Azure): {args["prompt"]}</i>')
             self.azure_agent.agent_instructions = "You are a professional researcher and analyist. Use the information and instructions provided to research and provide feedback."
             results = self.azure_agent.generate(user, args['prompt'])
         elif tool_name == "agent_mathmatician":
-            if debug: print(f"Asking the Agent Mathmatician (Local: Llama3.1 7b)")
+            self.extra_messages[user].append(f'<HR><i>Asking the Agent Mathmatician (Ollama): {args["prompt"]}</i>')
             results = self.math_agent.generate(user, args['prompt'])
         elif tool_name == "agent_confluence":
-            if debug: print(f"Asking the Agent Confluence (Azure)")
+            self.extra_messages[user].append(f'<HR><i>Asking the Agent Confluence (Azure): {args["prompt"]}</i>')
             results = self.confluence_agent.generate(user, args['prompt'])
         elif tool_name == "agent_jira":
-            if debug: print(f"Asking the Agent JIRA (Azure)")
+            self.extra_messages[user].append(f'<HR><i>Asking the Agent JIRA (Azure): {args["prompt"]}</i>')
             results = self.jira_agent.generate(user, args['prompt'])
         elif tool_name == "agent_websearch":
-            if debug: print(f"Asking the Agent Websearcher (Azure)")
+            self.extra_messages[user].append(f'<HR><i>Asking the Agent Websearch (Azure): {args["prompt"]}</i>')
             results = self.websearch_agent.generate(user, args['prompt'])
         else:
             results =  "Tool not supported"

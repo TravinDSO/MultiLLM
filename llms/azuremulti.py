@@ -20,6 +20,7 @@ class AzureMulti():
         self.agent_instructions = None
         self.number_of_responses = 0
         self.conversation_history = {}
+        self.extra_messages = {}
         self.type = type
         self.tools = [
             {
@@ -55,6 +56,7 @@ class AzureMulti():
         tool_name = tool.function.name
         args = json.loads(tool.function.arguments)
         if tool_name == "generate_image":
+            self.extra_messages[user].append(f'<HR><i>Generating image using this prompt: {args["prompt"]}</i>')
             return self.image_generate(user, args['prompt'])
         else:
             return "Tool not supported"
@@ -174,6 +176,13 @@ class AzureMulti():
             self.number_of_responses += 1
 
         return response
+    
+    def get_extra_messages(self, user):
+        if user not in self.extra_messages:
+            self.extra_messages[user] = []  # Initialize the list if the key doesn't exist
+        messages = self.extra_messages[user]
+        self.extra_messages[user] = []  # Clear messages after fetching
+        return messages
 
     def check_for_previous_conversation(self, user):
         if self.use_assistants:

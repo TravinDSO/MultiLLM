@@ -8,6 +8,7 @@ class OllamaMulti():
         self.api_base_url = api_base_url
         self.model = model
         self.conversation_history = {}
+        self.extra_messages = {}
         self.info_link = info_link
         self.wait_limit = wait_limit
         self.agent_instructions = None
@@ -77,6 +78,13 @@ class OllamaMulti():
             'content': self.assistant_message
         })
         return self.assistant_message
+    
+    def get_extra_messages(self, user):
+        if user not in self.extra_messages:
+            self.extra_messages[user] = []  # Initialize the list if the key doesn't exist
+        messages = self.extra_messages[user]
+        self.extra_messages[user] = []  # Clear messages after fetching
+        return messages
 
     def handle_tool(self, user, tool_name, tool_args, prompt):
         return
