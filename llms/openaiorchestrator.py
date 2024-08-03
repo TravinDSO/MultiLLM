@@ -6,6 +6,8 @@ from llms.openaimulti import OpenaiMulti
 from llms.claudemulti import ClaudeMulti
 from llms.ollamamulti import OllamaMulti
 from llms.agents.websearch_agent import OpenAIWebsearchAgent
+from llms.agents.mail_agent import OpenAIMailAgent
+from llms.agents.tasks_agent import OpenAITasksAgent
 from llms.tools.weather import WeatherChecker
 
 # Inherit from the OpenaiMulti class
@@ -18,18 +20,26 @@ class OpenaiOrchestrator(OpenaiMulti):
         #Agents
         self.claude_agent = ClaudeMulti(claude_key)
         self.websearch_agent = OpenAIWebsearchAgent(api_key=api_key,model=model,type = 'assistant',google_key=google_key,google_cx=google_cx)
+        self.mail_agent = OpenAIMailAgent(api_key=api_key,model=model,type = 'assistant')
+        self.tasks_agent = OpenAITasksAgent(api_key=api_key,model=model,type = 'assistant')
         self.math_agent = OllamaMulti('llama3.1:latest')
         self.weather_checker = WeatherChecker(openweathermap_key)
 
         self.agent_instructions = """
         You are an orchestrator agent. You should maximize the use of the tools available to you.
         Use the agent_websearch tool to find real-time information that may not be available in the model.
+        Use the agent_mailsearch tool to search user mail for information.
         Links should always be HTML formatted using href so they can be clicked on. Example: <a href="https://www.example.com" target"_blank">Page Title</a>
         Images responses should be formatted in HTML to display the image. Example: <img src="https://www.example.com/image.jpg" alt="image">
         Use the agent_mathmatician tool when attempting to solve mathmatical or logical problems. Include all supporting information in the prompt.
         Use the agent_researcher tool when attempting to respond to highly factual or technical prompts. This tool will provide you with feedback to improve your response.
         All final responses should flow through the agent_writer tool to generate a response.
         For all tools, you should ask follow-up questions to get more information if needed.
+        """
+
+        # Localized instructions for the orchestrator
+        self.agent_instructions += """
+        All times should be converted to Eastern time. If a time or date specific question is asked to and agent, ensure they know the time zone is Eastern.
         """
 
         # Default tools available through the native orchestrator
@@ -165,6 +175,38 @@ class OpenaiOrchestrator(OpenaiMulti):
                     "required": ["prompt"]
                     }
                 }
+            },{
+            "type": "function",
+            "function": {
+                    "name": "agent_mailsearch",
+                    "description": "Use this agent to search the user's mail information related to the question/problem. Include supporting information if nessesary.",
+                    "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "prompt": {
+                        "type": "string",
+                        "description": "Prompt, asking the agent to search user mail for information related to the user's question/problem."
+                        }
+                    },
+                    "required": ["prompt"]
+                    }
+                }
+            },{
+            "type": "function",
+            "function": {
+                    "name": "agent_tasksearch",
+                    "description": "Use this agent to search the user's tasks related to the question/problem. Include a time range and supporting information if nessesary.",
+                    "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "prompt": {
+                        "type": "string",
+                        "description": "Prompt, asking the agent to search user's task for information related to the user's question/problem."
+                        }
+                    },
+                    "required": ["prompt"]
+                    }
+                }
             }
         ]
 
@@ -199,6 +241,12 @@ class OpenaiOrchestrator(OpenaiMulti):
         elif tool_name == "agent_websearch":
             if debug: print(f"Asking the Agent Websearcher (OpenAI)")
             results = self.websearch_agent.generate(user, args['prompt'])
+        elif tool_name == "agent_mailsearch":
+            if debug: print(f"Asking the Agent Mailsearcher (OpenAI)")
+            results = self.mail_agent.generate(user, args['prompt'])
+        elif tool_name == "agent_tasksearch":
+            if debug: print(f"Asking the Agent Tasksearcher (OpenAI)")
+            results = self.tasks_agent.generate(user, args['prompt'])
         else:
             results =  "Tool not supported"
         

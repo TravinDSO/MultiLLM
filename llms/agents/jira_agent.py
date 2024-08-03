@@ -1,4 +1,5 @@
 import json
+import datetime
 from llms.azuremulti import AzureMulti
 from llms.tools.jira_search import JiraSearch
 
@@ -38,6 +39,12 @@ class AzureJiraAgent(AzureMulti):
                     "required": ["JQL"]
                     }
                 } 
+            },{
+            "type": "function",
+            "function": {
+                    "name": "date_time",
+                    "description": "Obtain the current date and time."
+                }
             }
         ]
 
@@ -58,6 +65,9 @@ class AzureJiraAgent(AzureMulti):
                     #append the link and page test
                     jira_info += f"Page Text: {ticket_text}\n"
                 results = f'Your search to answer the question produced the following results:\n{jira_info}'
+        elif tool_name == "date_time":
+            if debug: print(f"Getting the date and time")
+            results = f"The current date and time is: {datetime.datetime.now()}"
         else:
             results =  "Tool not supported"
         
