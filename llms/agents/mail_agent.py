@@ -14,6 +14,7 @@ class OpenAIMailAgent(OpenaiMulti):
         self.agent_instructions = """
         You are a specialized agent that can search user mail for information.
         As this is your primary job, you will always use all the mail tools to search for information.
+        When dealing with Labels, always use the gmail_list_labels tool to ensure you are using the correct label ID.
         If you don't find what you need, try using the mail search tools again.
         Verify the information you find is accurate and relevant prior to responsing to the user.
         Your response must be less than 100k characters.
@@ -107,6 +108,38 @@ class OpenAIMailAgent(OpenaiMulti):
             },{
             "type": "function",
             "function": {
+                    "name": "gmail_list_labels",
+                    "description": "List all labels in Gmail.",
+                    "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "prompt": {
+                        "type": "string",
+                        "description": "The prompt to list all labels."
+                        }
+                    },
+                    "required": ["prompt"]
+                    }
+                }
+            },{
+            "type": "function",
+            "function": {
+                    "name": "gmail_create_label",
+                    "description": "Create a label in Gmail.",
+                    "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "label_name": {
+                        "type": "string",
+                        "description": "The name of the label to create."
+                        }
+                    },
+                    "required": ["label_name"]
+                    }
+                }
+            },{
+            "type": "function",
+            "function": {
                     "name": "date_time",
                     "description": "Obtain the current date and time."
                 }
@@ -174,6 +207,24 @@ class OpenAIMailAgent(OpenaiMulti):
             if debug: print(f"Deleting email: {args['message_id']}")
             self.gmail_clients[user].delete_email(args['message_id'])
             return "Email deleted"
+        elif tool_name == "gmail_list_labels":
+            if user not in self.gmail_clients:
+                try:
+                    self.gmail_clients[user] = GmailClient(user)
+                except Exception as e:
+                    return f"An error occurred: {e}"
+            if debug: print(f"Listing labels")
+            labels = self.gmail_clients[user].list_labels()
+            return labels
+        elif tool_name == "gmail_create_label":
+            if user not in self.gmail_clients:
+                try:
+                    self.gmail_clients[user] = GmailClient(user)
+                except Exception as e:
+                    return f"An error occurred: {e}"
+            if debug: print(f"Creating label: {args['label_name']}")
+            label_id = self.gmail_clients[user].create_label(args['label_name'])
+            return f"Label created with ID: {label_id}"
         elif tool_name == "date_time":
             if debug: print(f"Getting the date and time")
             results = f"The current date and time is: {datetime.datetime.now()}"

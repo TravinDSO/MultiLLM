@@ -130,8 +130,53 @@ class GmailClient:
         except Exception as e:
             print(f'An error occurred: {e}')
 
-    def add_label(self, message_id, label_id):
+    def list_labels(self):
+        labels_list = ""
         try:
+            labels = self.service.users().labels().list(userId='me').execute()
+            for label in labels['labels']:
+                labels_list += f"Label name: {label['name']}, Label ID: {label['id']}\n"
+            # print(labels_list)
+            return labels_list
+        except Exception as e:
+            print(f'An error occurred while listing labels: {e}')
+            return None
+
+    def create_label(self, label_name):
+        label = {
+            'name': label_name,
+            'labelListVisibility': 'labelShow',
+            'messageListVisibility': 'show'
+        }
+        try:
+            created_label = self.service.users().labels().create(userId='me', body=label).execute()
+            print(f"Label {label_name} created with ID: {created_label['id']}")
+            return created_label['id']
+        except Exception as e:
+            print(f'An error occurred while creating label: {e}')
+            return None
+
+    def get_label_id(self, label_name):
+        try:
+            labels = self.service.users().labels().list(userId='me').execute()
+            for label in labels['labels']:
+                if label['name'] == label_name:
+                    return label['id']
+            return None
+        except Exception as e:
+            print(f'An error occurred while retrieving label ID: {e}')
+            return None
+
+    def add_label(self, message_id, label_name):
+        try:
+
+            try:
+                label_id = self.get_label_id(label_name)
+                if not label_id:
+                    label_id = label_name    
+            except Exception as e:
+                label_id = label_name
+
             self.service.users().messages().modify(
                 userId='me', id=message_id, body={'addLabelIds': [label_id]}).execute()
             print(f'Label {label_id} added to message {message_id}.')
@@ -159,21 +204,30 @@ if __name__ == "__main__":
 
     print("Emails from yesterday:")
     email_query = f'after:{start_date}'
-    emails = client.search_emails(email_query)
+    emails = "" #client.search_emails(email_query)
 
     if emails:
         for email in emails:
             email_details = client.get_email_details(email['id'])
             print(email_details)
-            #client.mark_as_unread(email['id'])
-            #client.archive_email(email['id'])
-            #client.delete_email(email['id'])
-            #client.add_label(email['id'], 'Label_1_ID')  # Replace 'Label_1_ID' with the actual label ID
     else:
         print('No emails found.')
 
-    print("\nCalendar events for today with keyword 'meeting':")
-    events = client.search_calendar_events(start_date, end_date, query='meeting')
+    email_id = "19115bbe68bc7f4e"
+
+
+    try:
+        #client.mark_as_read(email_id)
+        #client.archive_email(email_id)
+        #client.delete_email(email_id)
+        #client.add_label(email_id, 'deleteme')  # Replace 'Label_1_ID' with the actual label ID
+        client.list_labels()
+        #client.create_label('Test21')
+    except Exception as e:
+        print(f'An error occurred: {e}')
+
+    #print("\nCalendar events for today with keyword 'meeting':")
+    events = "" #client.search_calendar_events(start_date, end_date, query='meeting')
 
     if events:
         for event in events:
