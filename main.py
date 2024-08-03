@@ -131,7 +131,9 @@ if __name__ == '__main__':
     APP_IP = os.getenv('APP_IP')
     APP_PORT = os.getenv('APP_PORT')
 
-    if APP_IP is not None and APP_PORT is not None:
+    if APP_IP and APP_PORT:
+        print(f"Running on http://{APP_IP}:{APP_PORT}")
         app.run(host=APP_IP, port=APP_PORT)
     else:
+        print("Running on http://localhost:5000")
         app.run()
