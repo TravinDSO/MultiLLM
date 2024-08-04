@@ -1,4 +1,5 @@
 import os
+import time
 import msal
 import requests
 import webbrowser
@@ -18,7 +19,7 @@ class OutlookClient:
         self.redirect_uri = 'http://localhost'
         self.token = None
         self.credentials_file = f'{user}_outlook_credentials.json'
-        self.token_file = f'{user}_token.pickle'
+        self.token_file = f'{user}_365_token.pickle'
         self.login()
 
     def get_msal_app(self):
@@ -93,20 +94,47 @@ class OutlookClient:
         else:
             raise Exception("Authorization code not found in the URL.")
 
-    def search_emails(self, start_date, end_date):
+    def search_emails(self, search_query=None, start_date=None, end_date=None):
         if not self.token:
             raise Exception("Access token is not available. Please authenticate first.")
-        start_date = start_date.strftime('%Y-%m-%dT%H:%M:%SZ')
-        end_date = end_date.strftime('%Y-%m-%dT%H:%M:%SZ')
-        endpoint = f"https://graph.microsoft.com/v1.0/me/messages?$filter=receivedDateTime ge {start_date} and receivedDateTime le {end_date}"
-        headers = {'Authorization': f'Bearer {self.token["access_token"]}'}
-        response = requests.get(endpoint, headers=headers)
+        
+        if not search_query:
+            search_query = "*"
 
-        if response.status_code == 200:
-            emails = response.json()['value']
-            return emails
+        if start_date:
+            start_date = start_date.strftime('%Y-%m-%dT%H:%M:%SZ')
         else:
-            raise Exception(f"Error retrieving emails: {response.status_code}, {response.text}")
+            # Default to 1 year ago
+            start_date = (datetime.now(timezone.utc) - timedelta(days=365)).strftime('%Y-%m-%dT%H:%M:%SZ')
+
+        if end_date:
+            end_date = end_date.strftime('%Y-%m-%dT%H:%M:%SZ')
+        else:
+            # Default to current date
+            end_date = datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
+        
+        endpoint = f"https://graph.microsoft.com/v1.0/me/messages?$search=\"{search_query}\""
+        headers = {'Authorization': f'Bearer {self.token["access_token"]}'}
+        
+        emails = []
+        while endpoint:
+            response = requests.get(endpoint, headers=headers)
+            if response.status_code == 200:
+                response_data = response.json()
+                emails.extend(response_data['value'])
+                endpoint = response_data.get('@odata.nextLink')
+                # Wait for 1 second before making the next request
+                time.sleep(1)
+            else:
+                raise Exception(f"Error retrieving emails: {response.status_code}, {response.text}")
+
+        # Manually filter emails by date range
+        filtered_emails = [
+            email for email in emails 
+            if start_date <= email['receivedDateTime'] <= end_date
+        ]
+        return filtered_emails
+
 
     def get_email_details(self, message_id):
         if not self.token:
@@ -116,42 +144,71 @@ class OutlookClient:
         response = requests.get(endpoint, headers=headers)
 
         if response.status_code == 200:
-            message = response.json()
-            subject = message.get('subject', 'No subject found.')
-            sender = message.get('from', {}).get('emailAddress', {}).get('address', 'No sender found.')
-            to = message.get('toRecipients', [{'emailAddress': {'address': 'No recipient found.'}}])[0]['emailAddress']['address']
-            date = message.get('receivedDateTime', 'No date found.')
-            body = message.get('body', {}).get('content', 'No message body found.')
-            email_link = f"https://outlook.office.com/mail/deeplink/compose/{message_id}"
+                message = response.json()
+                subject = message.get('subject', 'No subject found.')
+                sender_info = message.get('from', {}).get('emailAddress', {})
+                sender = sender_info.get('address', 'No sender found.')
 
-            return f'subject: {subject}, sender: {sender}, to: {to}, date: {date}, message: {body}, link: {email_link}'
+                to_recipients = message.get('toRecipients', [])
+                if to_recipients:
+                    to = to_recipients[0].get('emailAddress', {}).get('address', 'No recipient found.')
+                else:
+                    to = 'No recipient found.'
+
+                date = message.get('receivedDateTime', 'No date found.')
+                body = message.get('body', {}).get('content', 'No message body found.')
+                email_link = f"https://outlook.office.com/mail/deeplink/compose/{message_id}"
+
+                return f'subject: {subject}, sender: {sender}, to: {to}, date: {date}, message: {body}, link: {email_link}'
         else:
             raise Exception(f"Error retrieving email details: {response.status_code}, {response.text}")
 
-    def search_calendar_events(self, time_min, time_max, query=None):
+    def search_calendar_events(self, search_query=None, start_date=None, end_date=None):
         if not self.token:
             raise Exception("Access token is not available. Please authenticate first.")
-        endpoint = f"https://graph.microsoft.com/v1.0/me/events?$filter=start/dateTime ge '{time_min}' and end/dateTime le '{time_max}'"
-        if query:
-            endpoint += f" and contains(subject, '{query}')"
-        headers = {'Authorization': f'Bearer {self.token["access_token"]}'}
-        response = requests.get(endpoint, headers=headers)
 
-        if response.status_code == 200:
-            events = response.json()['value']
-            return events
+        if start_date:
+            start_date = start_date.strftime('%Y-%m-%dT%H:%M:%SZ')
         else:
-            raise Exception(f"Error retrieving calendar events: {response.status_code}, {response.text}")
+            # Default to 31 days ago
+            start_date = (datetime.now(timezone.utc) - timedelta(days=31)).strftime('%Y-%m-%dT%H:%M:%SZ')
+
+        if end_date:
+            end_date = end_date.strftime('%Y-%m-%dT%H:%M:%SZ')
+        else:
+            # Default to 31 days from now
+            end_date = (datetime.now(timezone.utc) + timedelta(days=31)).strftime('%Y-%m-%dT%H:%M:%SZ')
+
+        endpoint = f"https://graph.microsoft.com/v1.0/me/calendarView?startDateTime={start_date}&endDateTime={end_date}"
+        if search_query:
+            endpoint += f"&$search=\"{search_query}\""
+        
+        headers = {'Authorization': f'Bearer {self.token["access_token"]}'}
+        
+        events = []
+        while endpoint:
+            response = requests.get(endpoint, headers=headers)
+            if response.status_code == 200:
+                response_data = response.json()
+                events.extend(response_data['value'])
+                endpoint = response_data.get('@odata.nextLink')
+                # Wait for 1 second before making the next request
+                time.sleep(1)
+            else:
+                raise Exception(f"Error retrieving calendar events: {response.status_code}, {response.text}")
+
+        return events
 
 # Usage
 if __name__ == "__main__":
     client = OutlookClient('user')
 
-    start_date = (datetime.now(timezone.utc) - timedelta(days=1))
+    query = "Replicon"
+    
+    start_date = (datetime.now(timezone.utc)) - timedelta(days=31)
     end_date = datetime.now(timezone.utc)
 
-    print("Emails from yesterday:")
-    emails = client.search_emails(start_date, end_date)
+    emails = client.search_emails(query,start_date, end_date)
 
     if emails:
         for email in emails:
@@ -160,12 +217,12 @@ if __name__ == "__main__":
     else:
         print('No emails found.')
 
-    print("\nCalendar events for today with keyword 'meeting':")
-    events = client.search_calendar_events(start_date.strftime('%Y-%m-%dT%H:%M:%SZ'), end_date.strftime('%Y-%m-%dT%H:%M:%SZ'), query='meeting')
+    #print("\nCalendar events for today with keyword 'meeting':")
+    # events = client.search_calendar_events(query,start_date, end_date)
 
-    if events:
-        for event in events:
-            start = event['start'].get('dateTime', event['start'].get('date'))
-            print(start, event['subject'])
-    else:
-        print('No upcoming events found.')
+    # if events:
+    #     for event in events:
+    #         start = event['start'].get('dateTime', event['start'].get('date'))
+    #         print(start, event['subject'])
+    # else:
+    #     print('No upcoming events found.')
