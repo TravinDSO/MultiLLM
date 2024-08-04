@@ -8,7 +8,35 @@ from urllib.parse import urlparse, parse_qs
 from dotenv import load_dotenv
 from datetime import datetime, timedelta, timezone
 
-TOKEN_FILE = 'token.pickle'
+# Sign in to the Azure portal: https://portal.azure.com/#home
+# Register a new application:
+    # Navigate to Azure Active Directory > App registrations (or just search for App registrations).
+    # Click on New registration.
+    # Provide a Name for your application (e.g., "My Python App").
+    # For Supported account types, choose an option based on your needs. For most cases, "Accounts in this organizational directory only" is sufficient.
+    # Set the Redirect URI to a valid URI for your application (e.g., http://localhost for a local app).
+    # Complete the registration:
+        # Click on Register.
+# API permissions:
+    # After registering the application, go to the API permissions section.
+    # Click on Add a permission.
+    # Select Microsoft Graph.
+    # Choose Delegated permissions or Application permissions based on your needs. For reading emails and calendar events, you might need:
+        # Mail.Read
+        # Calendars.Read
+    # Click Add permissions.
+# Grant admin consent (if needed): If required, click on Grant admin consent for [Your Organization] to grant the necessary permissions.
+# Certificates & secrets:
+    # Navigate to the Certificates & secrets section.
+    # Click on New client secret.
+    # Provide a description (e.g., "MySecret") and set an expiration period.
+    # Click on Add.
+# Copy the client secret value: Copy the Value of the client secret. This is the only time you will be able to see the value, so store it securely.
+
+# You will need the following information to use in your Python script:
+    # Client ID: Found in the Overview section of your registered application.
+    # Client Secret: The value you copied in the previous step.
+    # Tenant ID: Found in the Overview section of your Azure AD.
 
 class OutlookClient:
     def __init__(self, user):
@@ -59,7 +87,12 @@ class OutlookClient:
                 return token
         return None
 
-    def refresh_token_if_needed(self):
+    def refresh_token_if_needed(self, error=None):
+        # If the token is invalid, delete the pickle file and refresh the token
+        if error == "InvalidAuthenticationToken":
+            os.remove(self.token_file)
+            self.token = None            
+
         token = self.load_token()
         if token:
             self.token = token
@@ -102,13 +135,23 @@ class OutlookClient:
             search_query = "*"
 
         if start_date:
-            start_date = start_date.strftime('%Y-%m-%dT%H:%M:%SZ')
+            try:
+                start_date = datetime.fromisoformat(start_date)
+                start_date = start_date.strftime('%Y-%m-%dT%H:%M:%SZ')
+            except ValueError:
+                print("Invalid start date format. Defaulting to 1 year ago.")
+                start_date = (datetime.now(timezone.utc) - timedelta(days=365)).strftime('%Y-%m-%dT%H:%M:%SZ')
         else:
             # Default to 1 year ago
             start_date = (datetime.now(timezone.utc) - timedelta(days=365)).strftime('%Y-%m-%dT%H:%M:%SZ')
 
         if end_date:
-            end_date = end_date.strftime('%Y-%m-%dT%H:%M:%SZ')
+            try:
+                end_date = datetime.fromisoformat(end_date)
+                end_date = end_date.strftime('%Y-%m-%dT%H:%M:%SZ')
+            except ValueError:
+                print("Invalid end date format. Defaulting to current date.")
+                end_date = datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
         else:
             # Default to current date
             end_date = datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
@@ -126,11 +169,16 @@ class OutlookClient:
                 # Wait for 1 second before making the next request
                 time.sleep(1)
             else:
-                raise Exception(f"Error retrieving emails: {response.status_code}, {response.text}")
+                # If response.text containt "InvalidAuthenticationToken" then refresh token
+                if "InvalidAuthenticationToken" in response.text:
+                    self.refresh_token_if_needed("InvalidAuthenticationToken")
+                    return Exception("Token refreshed. Please try again.") 
+                else:
+                    raise Exception(f"Error retrieving emails: {response.status_code}, {response.text}")
 
         # Manually filter emails by date range
         filtered_emails = [
-            email for email in emails 
+            email for email in emails
             if start_date <= email['receivedDateTime'] <= end_date
         ]
         return filtered_emails
@@ -158,10 +206,15 @@ class OutlookClient:
                 date = message.get('receivedDateTime', 'No date found.')
                 body = message.get('body', {}).get('content', 'No message body found.')
                 email_link = f"https://outlook.office.com/mail/deeplink/compose/{message_id}"
-
+                print({subject})
                 return f'subject: {subject}, sender: {sender}, to: {to}, date: {date}, message: {body}, link: {email_link}'
         else:
-            raise Exception(f"Error retrieving email details: {response.status_code}, {response.text}")
+                # If response.text containt "InvalidAuthenticationToken" then refresh token
+                if "InvalidAuthenticationToken" in response.text:
+                    self.refresh_token_if_needed("InvalidAuthenticationToken")
+                    return Exception("Token refreshed. Please try again.") 
+                else:
+                    raise Exception(f"Error retrieving emails: {response.status_code}, {response.text}")
 
     def search_calendar_events(self, search_query=None, start_date=None, end_date=None):
         if not self.token:
@@ -195,9 +248,56 @@ class OutlookClient:
                 # Wait for 1 second before making the next request
                 time.sleep(1)
             else:
-                raise Exception(f"Error retrieving calendar events: {response.status_code}, {response.text}")
+                # If response.text containt "InvalidAuthenticationToken" then refresh token
+                if "InvalidAuthenticationToken" in response.text:
+                    self.refresh_token_if_needed("InvalidAuthenticationToken")
+                    return Exception("Token refreshed. Please try again.") 
+                else:
+                    raise Exception(f"Error retrieving event: {response.status_code}, {response.text}")
 
         return events
+
+    def check_room_availability(self, room_email, start_time, end_time):
+        body = {
+            "schedules": [room_email],
+            "startTime": {
+                "dateTime": start_time,
+                "timeZone": "UTC"
+            },
+            "endTime": {
+                "dateTime": end_time,
+                "timeZone": "UTC"
+            },
+            "availabilityViewInterval": 30
+        }
+        self.refresh_token_if_needed()
+        headers = {
+            'Authorization': f'Bearer {self.token["access_token"]}',
+            'Content-Type': 'application/json'
+        }
+        response = requests.post(f'https://graph.microsoft.com/v1.0/me/calendar/getSchedule', headers=headers, json=body)
+        response.raise_for_status()
+        return response.json()
+
+    def check_person_availability(self, person_email, start_time, end_time):
+        return self.check_room_availability(person_email, start_time, end_time)
+
+    def search_users(self, query):
+        # Requires admin consent
+        self.refresh_token_if_needed()
+        headers = {'Authorization': f'Bearer {self.token["access_token"]}'}
+        filter_query = f"startswith(displayName,'{query}') or startswith(mail,'{query}')"
+        response = requests.get(f'https://graph.microsoft.com/v1.0/users?$filter={filter_query}', headers=headers)
+        response.raise_for_status()
+        return response.json()
+
+    def list_rooms(self):
+        # Requires admin consent
+        self.refresh_token_if_needed()
+        headers = {'Authorization': f'Bearer {self.token["access_token"]}'}
+        response = requests.get('https://graph.microsoft.com/v1.0/places/microsoft.graph.room', headers=headers)
+        response.raise_for_status()
+        return response.json()
 
 # Usage
 if __name__ == "__main__":
@@ -205,17 +305,19 @@ if __name__ == "__main__":
 
     query = "Replicon"
     
-    start_date = (datetime.now(timezone.utc)) - timedelta(days=31)
-    end_date = datetime.now(timezone.utc)
+    # ISO format date strings
+    start_date = (datetime.now(timezone.utc) - timedelta(days=7)).isoformat()
+    end_date = datetime.now(timezone.utc).isoformat()
 
-    emails = client.search_emails(query,start_date, end_date)
+    # emails = client.search_emails(query,start_date, end_date)
 
-    if emails:
-        for email in emails:
-            email_details = client.get_email_details(email['id'])
-            print(email_details)
-    else:
-        print('No emails found.')
+    # if emails:
+    #     for email in emails:
+    #         print(email['subject'])
+    #         #email_details = client.get_email_details(email['id'])
+    #         #print(email_details)
+    # else:
+    #     print('No emails found.')
 
     #print("\nCalendar events for today with keyword 'meeting':")
     # events = client.search_calendar_events(query,start_date, end_date)
@@ -226,3 +328,24 @@ if __name__ == "__main__":
     #         print(start, event['subject'])
     # else:
     #     print('No upcoming events found.')
+
+    #room_email = "copernicus@cvent.com"
+    #person_email = "m.nelson@cvent.com"
+    #start_time = datetime.now().isoformat()
+    #end_time = (datetime.now() + timedelta(hours=24)).isoformat()
+
+    #room_availability = client.check_room_availability(room_email, start_time, end_time)
+    #print("Room Availability:", room_availability)
+
+    #person_availability = client.check_person_availability(person_email, start_time, end_time)
+    #print("Person Availability:", person_availability)
+
+    # REQUIRES ADMIN CONSENT ########################################################
+    # List rooms
+    #rooms = client.list_rooms()
+    #print("Rooms:", rooms)
+
+    # Search users
+    #user_query = "Chris Rea"
+    #users = client.search_users(user_query)
+    #print("Users:", users)

@@ -1,7 +1,9 @@
 import json
 import datetime
 from llms.openaimulti import OpenaiMulti
+from llms.azuremulti import AzureMulti
 from llms.tools.gmail import GmailClient
+from llms.tools.office365 import OutlookClient
 
 class OpenAIMailAgent(OpenaiMulti):
     def __init__(self, api_key,model='gpt-4o',info_link='',type='assistant',
@@ -225,6 +227,128 @@ class OpenAIMailAgent(OpenaiMulti):
             if debug: print(f"Creating label: {args['label_name']}")
             label_id = self.gmail_clients[user].create_label(args['label_name'])
             return f"Label created with ID: {label_id}"
+        elif tool_name == "date_time":
+            if debug: print(f"Getting the date and time")
+            results = f"The current date and time is: {datetime.datetime.now()}"
+        else:
+            results =  "Tool not supported"
+        
+        return results
+    
+class AzureMailAgent(AzureMulti):
+    def __init__(self, api_key,model='gpt-4o',endpoint='',version='',info_link='',type='assistant',
+                 wait_limit=300):
+        # Call the parent class constructor
+        super().__init__(api_key,model,endpoint,version,info_link,wait_limit,type)
+
+        self.outlook365_clients = {}
+
+        self.agent_instructions = """
+        You are a specialized agent that can search user mail for information.
+        As this is your primary job, you will always use the mail tools to search for information.
+        Alway use the outlook_search first to get a list of emails.
+        Only use the outlook_mail_details tool if you need more information on a specific email.
+        If you don't find what you need, try using the mail search tools again.
+        Verify the information you find is accurate and relevant prior to responsing to the user.
+        Your response must be less than 100k characters.
+        """
+
+        # Additional tools created for the orchestrator
+        self.tools = [
+            {
+            "type": "function",
+            "function": {
+                    "name": "outlook_search",
+                    "description": "Search Outlook e-mail relating to the user's question.",
+                    "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "search_string": {
+                        "type": "string",
+                        "description": "Your search string to find e-mails in Outlook. Ensure this is formatted correctly using Outlook's Graph API search syntax."
+                        },
+                        "start_date": {
+                        "type": "string",
+                        "description": "a Python date.isoformat() for the start date of the search"
+                        },
+                        "end_date": {
+                        "type": "string",
+                        "description": "a Python date.isoformat() for the end date of the search"
+                        }
+                    },
+                    "required": ["start_date","end_date","search_string"]
+                    }
+                }
+            },{
+            "type": "function",
+            "function": {
+                    "name": "outlook_mail_details",
+                    "description": "Get the details of an e-mail in Outlook.",
+                    "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "email_id": {
+                        "type": "string",
+                        "description": "The ID of the e-mail to get details for."
+                        }
+                    },
+                    "required": ["email_id"]
+                    }
+                }
+            },{
+            "type": "function",
+            "function": {
+                    "name": "date_time",
+                    "description": "Obtain the current date and time."
+                }
+            }
+        ]
+
+    # override the handle_tool method
+    def handle_tool(self, user, tool):
+        tool_name = tool.function.name
+        debug = True # Set to True to print debug information
+        args = json.loads(tool.function.arguments)
+        if tool_name == "outlook_search":
+            msg_details = ""
+            # Check if the user has a Gmail client
+            if user not in self.outlook365_clients:
+                try:
+                    self.outlook365_clients[user] = OutlookClient(user)
+                except Exception as e:
+                    return f"An error occurred: {e}"
+
+            start_date = args['start_date']
+            end_date = args['end_date']
+            query = args['search_string']
+
+            if debug: print(f"Searching Outlook: {start_date} to {end_date} for {query}")
+
+            try:
+                outlook_data = self.outlook365_clients[user].search_emails(query, start_date, end_date)
+            except Exception as e:
+                return f"An error occurred: {e}"
+
+            if outlook_data:
+                for msg in outlook_data:
+                    title = msg['subject']
+                    id = msg['id']
+                    msg_details += f"Subject: {title}, ID: {id}\n"
+                    print(title)
+            
+            if msg_details:
+                return msg_details
+            else:
+                return 'No messages found.'
+        elif tool_name == "outlook_mail_details":
+            if user not in self.outlook365_clients:
+                try:
+                    self.outlook365_clients[user] = OutlookClient(user)
+                except Exception as e:
+                    return f"An error occurred: {e}"
+            if debug: print(f"Getting email details: {args['email_id']}")
+            email_details = self.outlook365_clients[user].get_email_details(args['email_id'])
+            return email_details
         elif tool_name == "date_time":
             if debug: print(f"Getting the date and time")
             results = f"The current date and time is: {datetime.datetime.now()}"

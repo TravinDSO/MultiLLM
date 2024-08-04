@@ -7,6 +7,7 @@ from llms.ollamamulti import OllamaMulti
 from llms.agents.confluence_agent import AzureConfluenceAgent
 from llms.agents.jira_agent import AzureJiraAgent
 from llms.agents.websearch_agent import AzureWebsearchAgent
+from llms.agents.mail_agent import AzureMailAgent
 from llms.tools.weather import WeatherChecker
 
 # Inherit from the OpenaiMulti class
@@ -22,6 +23,7 @@ class AzureOrchestrator(AzureMulti):
         self.confluence_agent = AzureConfluenceAgent(api_key=api_key,model=model,endpoint=endpoint,version=version,type = 'assistant',confluence_url=confluence_url,confluence_token=confluence_token)
         self.jira_agent = AzureJiraAgent(api_key=api_key,model=model,endpoint=endpoint,version=version,type = 'assistant',jira_url=jira_url,jira_token=jira_token)
         self.websearch_agent = AzureWebsearchAgent(api_key=api_key,model=model,endpoint=endpoint,version=version,type = 'assistant',google_key=google_key,google_cx=google_cx)
+        self.mail_agent = AzureMailAgent(api_key=api_key,model=model,endpoint=endpoint,version=version,type = 'assistant')
         self.math_agent = OllamaMulti('llama3.1:latest')
         self.weather_checker = WeatherChecker(openweathermap_key)
 
@@ -29,6 +31,7 @@ class AzureOrchestrator(AzureMulti):
         You are an orchestrator agent. You should maximize the use of the tools available to you.
         Use the get_weather and get_forcast tools to check the current weather, temperature and forecast for a location.
         Use the agent_websearch tool to find real-time information that may not be available in the model.
+        Use the agent_mailsearch tool to search user mail for information. Include a time range and supporting information if nessesary.
         If someone asks for information from the Wiki or Confluence, you should as the agent_confluence tool.
         If someone asks for information from JIRA, you should use the agent_jira tool.
         If someone asks a business question, the agent_jira and agent_confluence tools should be asked as well.
@@ -39,6 +42,11 @@ class AzureOrchestrator(AzureMulti):
         Use the agent_researcher tool when attempting to respond to highly factual or technical prompts. This tool will provide you with feedback to improve your response.
         The agent_writer tool can be used to enhance your response with professional writing skills.
         For all tools, you should ask follow-up questions to get more information if needed.
+        """
+
+        # Localized instructions for the orchestrator
+        self.agent_instructions += """
+        All times should be converted to Eastern time. If a time or date specific question is asked to and agent, ensure they know the time zone is Eastern.
         """
 
         # Default tools available through the native orchestrator
@@ -206,6 +214,22 @@ class AzureOrchestrator(AzureMulti):
                     "required": ["prompt"]
                     }
                 }
+            },{
+            "type": "function",
+            "function": {
+                    "name": "agent_mailsearch",
+                    "description": "Use this agent to search the user's mail information related to the question/problem. Include a time range and supporting information if nessesary.",
+                    "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "prompt": {
+                        "type": "string",
+                        "description": "Prompt, asking the agent to search user mail for information related to the user's question/problem."
+                        }
+                    },
+                    "required": ["prompt"]
+                    }
+                }
             }
         ]
 
@@ -245,6 +269,9 @@ class AzureOrchestrator(AzureMulti):
         elif tool_name == "agent_websearch":
             self.extra_messages[user].append(f'<HR><i>Asking the Agent Websearch (Azure): {args["prompt"]}</i>')
             results = self.websearch_agent.generate(user, args['prompt'])
+        elif tool_name == "agent_mailsearch":
+            self.extra_messages[user].append(f'<HR><i>Asking the Agent Mailsearch (Azure): {args["prompt"]}</i>')
+            results = self.mail_agent.generate(user, args['prompt'])            
         else:
             results =  "Tool not supported"
         
