@@ -49,10 +49,19 @@ class GmailClient:
         self.service = build('gmail', 'v1', credentials=self.creds)
         self.calendar_service = build('calendar', 'v3', credentials=self.creds)
 
-    def search_emails(self, query):
+    def search_emails(self, query='', max_results=100):
         try:
-            results = self.service.users().messages().list(userId='me', q=query).execute()
-            messages = results.get('messages', [])
+            messages = []
+            response = self.service.users().messages().list(userId='me', q=query, maxResults=max_results).execute()
+            if 'messages' in response:
+                messages.extend(response['messages'])
+            
+            while 'nextPageToken' in response:
+                page_token = response['nextPageToken']
+                response = self.service.users().messages().list(userId='me', q=query, maxResults=max_results, pageToken=page_token).execute()
+                if 'messages' in response:
+                    messages.extend(response['messages'])
+            
             return messages
         except Exception as e:
             print(f'An error occurred: {e}')
@@ -183,12 +192,29 @@ class GmailClient:
         except Exception as e:
             print(f'An error occurred: {e}')
 
-    def search_calendar_events(self, time_min, time_max, query=None):
+    def search_calendar_events(self, time_min, time_max, query=None, max_results=100):
         try:
-            events_result = self.calendar_service.events().list(
-                calendarId='primary', timeMin=time_min, timeMax=time_max,
-                maxResults=100, singleEvents=True, orderBy='startTime', q=query).execute()
-            events = events_result.get('items', [])
+            events = []
+            page_token = None
+
+            while True:
+                events_result = self.calendar_service.events().list(
+                    calendarId='primary', 
+                    timeMin=time_min, 
+                    timeMax=time_max,
+                    maxResults=max_results, 
+                    singleEvents=True, 
+                    orderBy='startTime', 
+                    q=query,
+                    pageToken=page_token
+                ).execute()
+                
+                events.extend(events_result.get('items', []))
+                
+                page_token = events_result.get('nextPageToken')
+                if not page_token:
+                    break
+            
             return events
         except Exception as e:
             print(f'An error occurred: {e}')

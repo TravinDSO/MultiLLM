@@ -163,7 +163,7 @@ class OpenAIMailAgent(OpenaiMulti):
                     return f"An error occurred: {e}"
             
             if debug: print(f"Searching Gmail: {args['search_string']}")
-            gmail_data = self.gmail_clients[user].search_emails(args['search_string'])
+            gmail_data = self.gmail_clients[user].search_emails(args['search_string'], 20)
 
             if gmail_data:
                 for msg in gmail_data:

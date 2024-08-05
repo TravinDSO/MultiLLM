@@ -23,28 +23,28 @@ class OllamaOrchestrator(OllamaMulti):
         # Agents
         self.llama3_1_agent = OllamaMulti(api_base_url, 'llama3.1:latest')
 
-        self.verify_answers_asked = True
-        self.agent_instructions = """
-        You are an orchestrator agent. You should maximize the use of the tools available to you.
-        Always get the current date and time using the date_time tool before starting to answer a question that is time or date based.
-        Always use the get_weather and get_forcast tools to check the current weather, temperature and forecast for a location.
-        Use the web_search tool to find real-time information that may not be available in the model.
-        If someone asks for information from the Wiki or Confluence, you should use the confluence_search tool. The confluence_search tool also contains information relating to the our business, Cvent.
-        Use the mail tools to search user mail for information. Include a time range and supporting information if nessesary.
-        Only use the outlook_mail_details tool if you need more information on a specific email, start with the outlook_search tool first.
-        Use the search_calendar_events tool to search calendars for information. Include a time range and supporting information if nessesary.
-        Use the check_room_availability tool to check room availability for meetings. Include a time range and the room email address.
-        Use the check_person_availability tool to check person availability for meetings. Include a time range and the person email address.
-        If you are asked for availability, this means you should check for non-meeting times/dates.
-        If you are asked to search for non-specific things such as 'meetings' or 'events', just search with '*' as the search string.
-        If you are asked for availability, this means you should check for non-meeting times/dates.
-        For all tools, you may also ask follow-up questions to get more information.
-        Links should always be HTML formatted using href so they can be clicked on. Example: <a href="https://www.example.com" target"_blank">Page Title</a>
-        Images responses should be formatted in HTML to display the image. Example: <img src="https://www.example.com/image.jpg" alt="image">
-        Use the agent_mathmatician tool when attempting to solve mathmatical or logical problems. Include all supporting information in the prompt.
-        Use the agent_researcher tool when attempting to respond to highly factual or technical prompts. This tool will provide you with feedback to improve your response.
-        If needed, the final response should flow through the agent_writer tool to generate a well formed response.
-        """
+        self.verify_answers_asked = False
+        # self.agent_instructions = """
+        # You are an orchestrator agent. You should maximize the use of the tools available to you.
+        # Always get the current date and time using the date_time tool before starting to answer a question that is time or date based.
+        # 
+        # Use the web_search tool to find real-time information that may not be available in the model.
+        # If someone asks for information from the Wiki or Confluence, you should use the confluence_search tool. The confluence_search tool also contains information relating to the our business, Cvent.
+        # Use the mail tools to search user mail for information. Include a time range and supporting information if nessesary.
+        # Only use the outlook_mail_details tool if you need more information on a specific email, start with the outlook_search tool first.
+        # Use the search_calendar_events tool to search calendars for information. Include a time range and supporting information if nessesary.
+        # Use the check_room_availability tool to check room availability for meetings. Include a time range and the room email address.
+        # Use the check_person_availability tool to check person availability for meetings. Include a time range and the person email address.
+        # If you are asked for availability, this means you should check for non-meeting times/dates.
+        # If you are asked to search for non-specific things such as 'meetings' or 'events', just search with '*' as the search string.
+        # If you are asked for availability, this means you should check for non-meeting times/dates.
+        # For all tools, you may also ask follow-up questions to get more information.
+        # Links should always be HTML formatted using href so they can be clicked on. Example: <a href="https://www.example.com" target"_blank">Page Title</a>
+        # Images responses should be formatted in HTML to display the image. Example: <img src="https://www.example.com/image.jpg" alt="image">
+        # Use the agent_mathmatician tool when attempting to solve mathmatical or logical problems. Include all supporting information in the prompt.
+        # Use the agent_researcher tool when attempting to respond to highly factual or technical prompts. This tool will provide you with feedback to improve your response.
+        # If needed, the final response should flow through the agent_writer tool to generate a well formed response.
+        # """
 
         # Additional tools created for the orchestrator
         self.tools = [
@@ -67,24 +67,8 @@ class OllamaOrchestrator(OllamaMulti):
             },{
             "type": "function",
             "function": {
-                    "name": "confluence_search",
-                    "description": "Search the Atlassian Confluence system for information. If you don't find what you need, try again.",
-                    "parameters": {
-                    "type": "object",
-                    "properties": {
-                        "search_string": {
-                        "type": "string",
-                        "description": "Your search string to find information from Atlassian Confluence. Use this information in your response."
-                        }
-                    },
-                    "required": ["search_string"]
-                    }
-                } 
-            },{
-            "type": "function",
-            "function": {
                     "name": "jira_search",
-                    "description": "Search the Atlassian JIRA system for information. If you don't find what you need, try again.",
+                    "description": "Search the Atlassian JIRA system for business information. If you don't find what you need, try again.",
                     "parameters": {
                     "type": "object",
                     "properties": {
@@ -100,7 +84,7 @@ class OllamaOrchestrator(OllamaMulti):
             "type": "function",
             "function": {
                     "name": "search_calendar_events",
-                    "description": "Search Outlook's Calendars for details relating to the user's question.",
+                    "description": "Always search Outlook's Calendars for details relating to calendar question.",
                     "parameters": {
                     "type": "object",
                     "properties": {
@@ -124,7 +108,7 @@ class OllamaOrchestrator(OllamaMulti):
             "type": "function",
             "function": {
                     "name": "check_room_availability",
-                    "description": "Check the availability of a room in Outlook.",
+                    "description": "Check the availability of a room in Outlook Calendar.",
                     "parameters": {
                     "type": "object",
                     "properties": {
@@ -148,7 +132,7 @@ class OllamaOrchestrator(OllamaMulti):
             "type": "function",
             "function": {
                     "name": "check_person_availability",
-                    "description": "Check the availability of a person in Outlook.",
+                    "description": "Check the availability of a person in Outlook Calendar.",
                     "parameters": {
                     "type": "object",
                     "properties": {
@@ -172,7 +156,7 @@ class OllamaOrchestrator(OllamaMulti):
             "type": "function",
             "function": {
                     "name": "outlook_search",
-                    "description": "Search Outlook e-mail relating to the user's question.",
+                    "description": "Always use the outlook search to get a list of e-mails first, relating to the user's e-mail questions.",
                     "parameters": {
                     "type": "object",
                     "properties": {
@@ -196,7 +180,7 @@ class OllamaOrchestrator(OllamaMulti):
             "type": "function",
             "function": {
                     "name": "outlook_mail_details",
-                    "description": "Get the details of an e-mail in Outlook.",
+                    "description": "Only when needd, use this to get the details of an e-mail in Outlook.",
                     "parameters": {
                     "type": "object",
                     "properties": {
@@ -212,7 +196,7 @@ class OllamaOrchestrator(OllamaMulti):
             "type": "function",
             "function": {
                     "name": "get_weather",
-                    "description": "Check the current weather for a location.",
+                    "description": "Always use this tool to get the current weather for a location.",
                     "parameters": {
                     "type": "object",
                     "properties": {
@@ -232,7 +216,7 @@ class OllamaOrchestrator(OllamaMulti):
             "type": "function",
             "function": {
                     "name": "get_forecast",
-                    "description": "Check the weather forecast for a location.",
+                    "description": "Always use this tool to get the weather forecast for a location.",
                     "parameters": {
                     "type": "object",
                     "properties": {
@@ -249,10 +233,42 @@ class OllamaOrchestrator(OllamaMulti):
                     }
                 }
             },{
+                "type": "function",
+                "function": {
+                    "name": "confluence_CQL_search",
+                    "description": "Search the Atlassian Confluence & Wiki system using query language. If you don't find what you need, try again.",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "CQL": {
+                                "type": "string",
+                                "description": "Craft a Confluence CQL string to find information from Atlassian Confluence."
+                            }
+                        },
+                        "required": ["CQL"]
+                    }
+                }
+            },{
+                "type": "function",
+                "function": {
+                    "name": "confluence_site_search",
+                    "description": "Used to perform a broad search of the Atlassian Confluence & Wiki system.",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "search_string": {
+                                "type": "string",
+                                "description": "Craft a search string to find information from Atlassian Confluence."
+                            }
+                        },
+                        "required": ["search_string"]
+                    }
+                }
+            },{
             "type": "function",
             "function": {
                     "name": "date_time",
-                    "description": "Obtain the current date and time."
+                    "description": "Always obtain the current date and time for any question that has a date or time element."
                 }
             }
         ]
@@ -311,7 +327,7 @@ class OllamaOrchestrator(OllamaMulti):
         ]
 
     # Override the handle_tool method
-    def handle_tool(self, user, tool_name, tool_args, prompt):
+    def handle_tool(self, user, tool_name, tool_args=None, prompt=""):
         if tool_name == "web_search":
             self.extra_messages[user].append(f'<HR><i>Searching the web for: {tool_args["search_string"]}</i>')
             web_info = ""
@@ -324,18 +340,6 @@ class OllamaOrchestrator(OllamaMulti):
                     #append the link and page test
                     web_info += f"Link: {link}\nPage Text: {page_text}\n"
                 results = f'Your search to answer the question: {prompt} produced the following results:\n{web_info}'
-        elif tool_name == "confluence_search":
-            self.extra_messages[user].append(f'<HR><i>Searching Confluence for: {tool_args["search_string"]}</i>')
-            confluence_info = ""
-            confluence_data = self.confluence_search.search(tool_args['CQL'], num_results=10)
-            if confluence_data is None:
-                results = "No search results found"
-            else:
-                # Get each link and page text from the search results
-                for page_text in confluence_data:
-                    #append the link and page test
-                    confluence_info += f"Page Text: {page_text}\n"
-                results = f'Your search to answer the question: {prompt} produced the following results:\n{confluence_info}'
         elif tool_name == "jira_search":
             self.extra_messages[user].append(f'<HR><i>Searching JIRA for: {tool_args["JQL"]}</i>')
             jira_info = ""
@@ -364,7 +368,7 @@ class OllamaOrchestrator(OllamaMulti):
             self.extra_messages[user].append(f'<HR><i>Searching Outlook Mail: {start_date} to {end_date} for {query}</i>')
 
             try:
-                outlook_data = self.outlook365_clients[user].search_emails(query, start_date, end_date)
+                outlook_data = self.outlook365_clients[user].search_emails(query, start_date, end_date, 20)
             except Exception as e:
                 return f"An error occurred: {e}"
 
@@ -480,6 +484,31 @@ class OllamaOrchestrator(OllamaMulti):
             })
             self.llama3_1_agent.conversation_history[user] = self.conversation_history[user]
             results = self.llama3_1_agent.generate(user, agent_prompt)
+        elif tool_name == "confluence_CQL_search":
+            self.extra_messages[user].append(f'<HR><i>Searching the Wiki (Confluence) using CQL: {tool_args["CQL"]}</i>')
+            confluence_info = ""
+            confluence_data = self.confluence_search.search(tool_args['CQL'], num_results=10)
+            if confluence_data is None:
+                results = "No search results found"
+            else:
+                # Get each link and page text from the search results
+                for page_text in confluence_data:
+                    # append the link and page test
+                    confluence_info += f"Page Text: {page_text}\n"
+                results = f'Your search to answer the question produced the following results:\n{confluence_info}'
+        elif tool_name == "confluence_site_search":
+            cql = f"siteSearch ~ \"{tool_args['search_string']}\""
+            self.extra_messages[user].append(f'<HR><i>Searching the Wiki (Confluence) using CQL: {cql}</i>')
+            confluence_info = ""
+            confluence_data = self.confluence_search.search(cql, num_results=25)
+            if confluence_data is None:
+                results = "No search results found"
+            else:
+                # Get each link and page text from the search results
+                for page_text in confluence_data:
+                    # append the link and page test
+                    confluence_info += f"Page Text: {page_text}\n"
+                results = f'Your search to answer the question produced the following results:\n{confluence_info}'
         else:
             results = "Tool not supported"
 

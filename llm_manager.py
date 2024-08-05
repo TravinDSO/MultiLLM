@@ -11,6 +11,7 @@ from llms.azuremulti import AzureMulti
 from llms.openaiorchestrator import OpenaiOrchestrator
 from llms.azureorchestrator import AzureOrchestrator
 from llms.ollamaorchestrator import OllamaOrchestrator
+from llms.aohybridorchestrator import AOHybridOrchestrator
 
 class LLMManager:
     def __init__(self, config_path='llm_config.json'):
