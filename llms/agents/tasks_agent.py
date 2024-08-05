@@ -109,6 +109,7 @@ class AzureTasksAgent(AzureMulti):
 
         self.agent_instructions = """
         You are a specialized agent that keeps track of calendars, tasks, and to-do's.
+        Always get the current date and time using the date_time tool before using other tools.
         As this is your primary job, you will always use all the tools available to search for information.
         Use the search_calendar_events tool to search calendars for information. Include a time range and supporting information if nessesary.
         Use the check_room_availability tool to check room availability for meetings. Include a time range and the room email address.

@@ -246,7 +246,8 @@ class AzureMailAgent(AzureMulti):
         self.agent_instructions = """
         You are a specialized agent that can search user mail for information.
         As this is your primary job, you will always use the mail tools to search for information.
-        Alway use the outlook_search first to get a list of emails.
+        Always get the current date and time using the date_time tool before using other tools.
+        Always use the outlook_search first to get a list of emails.
         Only use the outlook_mail_details tool if you need more information on a specific email.
         If you don't find what you need, try using the mail search tools again.
         Verify the information you find is accurate and relevant prior to responsing to the user.
