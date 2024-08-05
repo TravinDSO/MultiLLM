@@ -46,6 +46,7 @@
                             <button onclick="confirmSummarize('{{ llm }}')">Summarize LLM responses</button>
                             <button onclick="generateResponse('{{ llm }}')">Submit</button>
                             <button onclick="confirmNewThread('{{ llm }}')">New</button>
+                            <button onclick="cancelRequest('{{ llm }}')">Cancel</button>
                         </div>
                     </div>
                     <textarea id="{{ llm }}-input" class="prompt"></textarea>

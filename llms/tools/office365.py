@@ -92,7 +92,7 @@ class OutlookClient:
         # If the token is invalid, delete the pickle file and refresh the token
         if error == "InvalidAuthenticationToken":
             os.remove(self.token_file)
-            self.token = None            
+            self.token = None
 
         token = self.load_token()
         if token:

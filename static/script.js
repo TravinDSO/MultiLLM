@@ -1,3 +1,21 @@
+const ongoingRequests = {};
+
+// Function to cancel a request
+function cancelRequest(llm) {
+    if (ongoingRequests[llm]) {
+        ongoingRequests[llm].abort();
+        delete ongoingRequests[llm];
+        clearInterval(timerInterval);
+
+        // Hide spinner and reset timer
+        document.getElementById(`${llm}-spinner`).style.visibility = 'hidden';
+        document.getElementById(`${llm}-spinner-toggle`).style.visibility = 'hidden';
+        document.getElementById(`${llm}-timer`).style.display = 'none';
+    } else {
+        console.log('No ongoing request to cancel');
+    }
+}
+
 // Function to check login status and update UI accordingly
 function checkLoginStatus() {
     fetch('/is_logged_in')
@@ -158,6 +176,10 @@ function generateResponse(llm) {
         timer.textContent = `${seconds}s`;
     }, 10);
 
+    const controller = new AbortController();
+    const signal = controller.signal;
+    ongoingRequests[llm] = controller;
+
     fetch('/generate', {
         method: 'POST',
         headers: {
@@ -168,6 +190,7 @@ function generateResponse(llm) {
     .then(response => response.json())
     .then(data => {
         clearInterval(timerInterval);
+        delete ongoingRequests[llm];
         let elapsedTime = (new Date() - startTime) / 1000;
         
         // Process the response and separate code blocks from plain text
@@ -186,14 +209,19 @@ function generateResponse(llm) {
         const userPrompt = `<strong>User:</strong> ${input.replace(/\n/g, '<br>')}<br><br>`;
         const llmResponse = `<strong>${llm} (${elapsedTime.toFixed(3)}s):</strong><br>${formattedResponse}<br>`;
 
-        outputDiv.innerHTML = `<hr>${userPrompt}${llmResponse}` + outputDiv.innerHTML;
+        outputDiv.innerHTML = `<hr>${llmResponse}<hr><i>${userPrompt}</i>` + outputDiv.innerHTML;
 
+        clearInterval(timerInterval);
         spinner.style.visibility = 'hidden';
         toggleSpinner.style.visibility = 'hidden';
         timer.style.display = 'none';
     })
     .catch((error) => {
-        console.error('Error:', error);
+        if (error.name === 'AbortError') {
+            console.log('Fetch aborted');
+        } else {
+            console.error('Error:', error);
+        }
         const errorResponse = 'An error occurred';
         outputDiv.innerHTML = `<hr><div>${errorResponse}</div>` + outputDiv.innerHTML;
 
@@ -201,6 +229,7 @@ function generateResponse(llm) {
         toggleSpinner.style.visibility = 'hidden';
         timer.style.display = 'none';
         clearInterval(timerInterval);
+        delete ongoingRequests[llm];
     });
 }
 
@@ -223,6 +252,7 @@ function confirmSummarize(llm) {
 function clearThread(llm) {
     document.getElementById(`${llm}-input`).value = '';
     document.getElementById(`${llm}-output`).innerHTML = '';
+    clearInterval(timerInterval);
 
     fetch('/clear_thread', {
         method: 'POST',
