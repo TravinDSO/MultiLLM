@@ -252,6 +252,10 @@ class AzureMailAgent(AzureMulti):
         Verify the information you find is accurate and relevant prior to responsing to the user.
         Your response must be less than 100k characters.
         """
+        # Localized instructions for the orchestrator
+        self.agent_instructions += """
+        All times should be converted to Eastern time. If a time or date specific question is asked to and agent, ensure they know the time zone is Eastern.
+        """
 
         # Additional tools created for the orchestrator
         self.tools = [
@@ -311,7 +315,7 @@ class AzureMailAgent(AzureMulti):
         args = json.loads(tool.function.arguments)
         if tool_name == "outlook_search":
             msg_details = ""
-            # Check if the user has a Gmail client
+            # Check if the user has a Outlook client
             if user not in self.outlook365_clients:
                 try:
                     self.outlook365_clients[user] = OutlookClient(user)

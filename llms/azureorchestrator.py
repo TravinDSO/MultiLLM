@@ -8,6 +8,7 @@ from llms.agents.confluence_agent import AzureConfluenceAgent
 from llms.agents.jira_agent import AzureJiraAgent
 from llms.agents.websearch_agent import AzureWebsearchAgent
 from llms.agents.mail_agent import AzureMailAgent
+from llms.agents.tasks_agent import AzureTasksAgent
 from llms.tools.weather import WeatherChecker
 
 # Inherit from the OpenaiMulti class
@@ -24,6 +25,7 @@ class AzureOrchestrator(AzureMulti):
         self.jira_agent = AzureJiraAgent(api_key=api_key,model=model,endpoint=endpoint,version=version,type = 'assistant',jira_url=jira_url,jira_token=jira_token)
         self.websearch_agent = AzureWebsearchAgent(api_key=api_key,model=model,endpoint=endpoint,version=version,type = 'assistant',google_key=google_key,google_cx=google_cx)
         self.mail_agent = AzureMailAgent(api_key=api_key,model=model,endpoint=endpoint,version=version,type = 'assistant')
+        self.tasks_agent = AzureTasksAgent(api_key=api_key,model=model,endpoint=endpoint,version=version,type = 'assistant')
         self.math_agent = OllamaMulti('llama3.1:latest')
         self.weather_checker = WeatherChecker(openweathermap_key)
 
@@ -32,6 +34,9 @@ class AzureOrchestrator(AzureMulti):
         Use the get_weather and get_forcast tools to check the current weather, temperature and forecast for a location.
         Use the agent_websearch tool to find real-time information that may not be available in the model.
         Use the agent_mailsearch tool to search user mail for information. Include a time range and supporting information if nessesary.
+        Use the agent_tasksearch tool to search user tasks and calendars for information. Include a time range and supporting information if nessesary.
+        The agent_tasksearch tool can also check room and employee availability to coordinate meetings.
+        If you are asked for availability, this means you should check for non-meeting times/dates.
         If someone asks for information from the Wiki or Confluence, you should as the agent_confluence tool.
         If someone asks for information from JIRA, you should use the agent_jira tool.
         If someone asks a business question, the agent_jira and agent_confluence tools should be asked as well.
@@ -230,6 +235,22 @@ class AzureOrchestrator(AzureMulti):
                     "required": ["prompt"]
                     }
                 }
+            },{
+            "type": "function",
+            "function": {
+                    "name": "agent_tasksearch",
+                    "description": "Use this agent to search the user's tasks related to the question/problem. Include a time range and supporting information if nessesary.",
+                    "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "prompt": {
+                        "type": "string",
+                        "description": "Prompt, asking the agent to search user's task for information related to the user's question/problem."
+                        }
+                    },
+                    "required": ["prompt"]
+                    }
+                }
             }
         ]
 
@@ -271,7 +292,10 @@ class AzureOrchestrator(AzureMulti):
             results = self.websearch_agent.generate(user, args['prompt'])
         elif tool_name == "agent_mailsearch":
             self.extra_messages[user].append(f'<HR><i>Asking the Agent Mailsearch (Azure): {args["prompt"]}</i>')
-            results = self.mail_agent.generate(user, args['prompt'])            
+            results = self.mail_agent.generate(user, args['prompt'])
+        elif tool_name == "agent_tasksearch":
+            self.extra_messages[user].append(f'<HR><i>Asking the Agent Tasksearch (Azure): {args["prompt"]}</i>')
+            results = self.tasks_agent.generate(user, args['prompt'])
         else:
             results =  "Tool not supported"
         

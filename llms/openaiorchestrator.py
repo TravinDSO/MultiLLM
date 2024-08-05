@@ -29,6 +29,7 @@ class OpenaiOrchestrator(OpenaiMulti):
         You are an orchestrator agent. You should maximize the use of the tools available to you.
         Use the agent_websearch tool to find real-time information that may not be available in the model.
         Use the agent_mailsearch tool to search user mail for information.
+        Use the agent_tasksearch tool to search user tasks and calendars for information.
         Links should always be HTML formatted using href so they can be clicked on. Example: <a href="https://www.example.com" target"_blank">Page Title</a>
         Images responses should be formatted in HTML to display the image. Example: <img src="https://www.example.com/image.jpg" alt="image">
         Use the agent_mathmatician tool when attempting to solve mathmatical or logical problems. Include all supporting information in the prompt.

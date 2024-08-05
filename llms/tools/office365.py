@@ -4,6 +4,7 @@ import msal
 import requests
 import webbrowser
 import pickle
+import json
 from urllib.parse import urlparse, parse_qs
 from dotenv import load_dotenv
 from datetime import datetime, timedelta, timezone
@@ -220,17 +221,30 @@ class OutlookClient:
         if not self.token:
             raise Exception("Access token is not available. Please authenticate first.")
 
+        if not search_query:
+            search_query = "*"
+
         if start_date:
-            start_date = start_date.strftime('%Y-%m-%dT%H:%M:%SZ')
+            try:
+                start_date = datetime.fromisoformat(start_date)
+                start_date = start_date.strftime('%Y-%m-%dT%H:%M:%SZ')
+            except ValueError:
+                print("Invalid start date format. Defaulting to 30 days ago.")
+                start_date = (datetime.now(timezone.utc) - timedelta(days=30)).strftime('%Y-%m-%dT%H:%M:%SZ')
         else:
-            # Default to 31 days ago
-            start_date = (datetime.now(timezone.utc) - timedelta(days=31)).strftime('%Y-%m-%dT%H:%M:%SZ')
+            # Default to 1 year ago
+            start_date = (datetime.now(timezone.utc) - timedelta(days=30)).strftime('%Y-%m-%dT%H:%M:%SZ')
 
         if end_date:
-            end_date = end_date.strftime('%Y-%m-%dT%H:%M:%SZ')
+            try:
+                end_date = datetime.fromisoformat(end_date)
+                end_date = end_date.strftime('%Y-%m-%dT%H:%M:%SZ')
+            except ValueError:
+                print("Invalid end date format. Defaulting to 30 days in the future.")
+                end_date = (datetime.now(timezone.utc) + timedelta(days=30)).strftime('%Y-%m-%dT%H:%M:%SZ')
         else:
-            # Default to 31 days from now
-            end_date = (datetime.now(timezone.utc) + timedelta(days=31)).strftime('%Y-%m-%dT%H:%M:%SZ')
+            # Default to 30 days in the future
+            end_date = (datetime.now(timezone.utc) + timedelta(days=30)).strftime('%Y-%m-%dT%H:%M:%SZ')
 
         endpoint = f"https://graph.microsoft.com/v1.0/me/calendarView?startDateTime={start_date}&endDateTime={end_date}"
         if search_query:
@@ -245,6 +259,10 @@ class OutlookClient:
                 response_data = response.json()
                 events.extend(response_data['value'])
                 endpoint = response_data.get('@odata.nextLink')
+
+                # Break if more than 100 events are found
+                if len(events) > 100:
+                    break
                 # Wait for 1 second before making the next request
                 time.sleep(1)
             else:
@@ -262,11 +280,11 @@ class OutlookClient:
             "schedules": [room_email],
             "startTime": {
                 "dateTime": start_time,
-                "timeZone": "UTC"
+                "timeZone": 'Eastern Standard Time'
             },
             "endTime": {
                 "dateTime": end_time,
-                "timeZone": "UTC"
+                "timeZone": 'Eastern Standard Time'
             },
             "availabilityViewInterval": 30
         }
@@ -277,7 +295,23 @@ class OutlookClient:
         }
         response = requests.post(f'https://graph.microsoft.com/v1.0/me/calendar/getSchedule', headers=headers, json=body)
         response.raise_for_status()
-        return response.json()
+        if response.status_code == 200:
+            availability = json.loads(response.text)
+            # Extract the schedule items
+            schedule_items = availability['value'][0]['scheduleItems']
+            # Create a list of scheduled items
+            scheduled_list = ""
+
+            for item in schedule_items:
+                scheduled_list += f"{item['status']} from {item['start']['dateTime']} to {item['end']['dateTime']} EST\n"
+            return scheduled_list
+        else:
+            # If response.text containt "InvalidAuthenticationToken" then refresh token
+            if "InvalidAuthenticationToken" in response.text:
+                self.refresh_token_if_needed("InvalidAuthenticationToken")
+                return Exception("Token refreshed. Please try again.") 
+            else:
+                return Exception(f"Error retrieving calendar: {response.status_code}, {response.text}")
 
     def check_person_availability(self, person_email, start_time, end_time):
         return self.check_room_availability(person_email, start_time, end_time)
@@ -329,13 +363,13 @@ if __name__ == "__main__":
     # else:
     #     print('No upcoming events found.')
 
-    #room_email = "copernicus@cvent.com"
-    #person_email = "m.nelson@cvent.com"
-    #start_time = datetime.now().isoformat()
-    #end_time = (datetime.now() + timedelta(hours=24)).isoformat()
+    room_email = "copernicus@cvent.com"
+    person_email = "m.nelson@cvent.com"
+    start_time = datetime.now().isoformat()
+    end_time = (datetime.now() + timedelta(hours=200)).isoformat()
 
-    #room_availability = client.check_room_availability(room_email, start_time, end_time)
-    #print("Room Availability:", room_availability)
+    room_availability = client.check_room_availability(room_email, start_time, end_time)
+    print("Room Availability:", room_availability)
 
     #person_availability = client.check_person_availability(person_email, start_time, end_time)
     #print("Person Availability:", person_availability)
