@@ -23,6 +23,13 @@ def load_users():
     with open('users.json') as f:
         return json.load(f)['users']
 
+def clear_outlook_pickles():
+    # Search app root for any pickle files matching *_365_token.pickle and delete them
+    for root, dirs, files in os.walk(os.getcwd()):
+        for file in files:
+            if file.endswith("_365_token.pickle"):
+                os.remove(os.path.join(root, file))
+
 @app.route('/')
 def index():
     if 'username' in session:
@@ -130,6 +137,9 @@ if __name__ == '__main__':
     
     APP_IP = os.getenv('APP_IP')
     APP_PORT = os.getenv('APP_PORT')
+
+    # Clear out any Outlook pickles that may be present
+    clear_outlook_pickles()
 
     if APP_IP and APP_PORT:
         print(f"Running on http://{APP_IP}:{APP_PORT}")
