@@ -18,6 +18,10 @@ class OllamaMulti():
     def generate(self, user, prompt, tool_use=True):
         if user not in self.conversation_history:
             self.conversation_history[user] = []
+            self.conversation_history[user].append({
+            'role': 'assistant',
+            'content': "Ready to be an assistant."
+            })
 
         prompt_with_instructions = f'{self.agent_instructions}\nQuestion: {prompt}'
         self.conversation_history[user].append({
@@ -95,6 +99,7 @@ class OllamaMulti():
 
         # Create a string that combines all user and assistant responses
         for item in self.conversation_history[user]:
+            conversation = ''
             if item['role'] == 'user':
                 conversation = item['content']
             elif item['role'] == 'assistant':
@@ -109,6 +114,10 @@ class OllamaMulti():
 
     def clear_conversation(self, user):
         self.conversation_history[user] = []
+        self.conversation_history[user].append({
+            'role': 'assistant',
+            'content': "Ready to be an assistant."
+        })
         return "Conversation cleared."
 
 # Test Cell

@@ -82,6 +82,7 @@ def generate():
             llm_logger.log(ip_address, user, llm_name, prompt, response)
             return jsonify({'response': response})
         except Exception as e:
+            print(e)
             return jsonify({'error': str(e)}), 500
     else:
         return jsonify({'error': 'LLM not found'}), 404
@@ -106,7 +107,8 @@ def summarize_thread():
         llm = llm_manager.get_llm(llm_name)
         thread = llm.summarize_conversation(user)
         return jsonify({'thread': thread}), 200
-    except:
+    except Exception as e:
+        print(e)
         return jsonify({'status': 'error', 'message': 'Error getting thread'}), 500
 
 @app.route('/check_conversation', methods=['POST'])
@@ -130,7 +132,8 @@ def clear_thread():
         llm = llm_manager.get_llm(llm_name)
         llm.clear_conversation(user)
         return jsonify({'status': 'success'}), 200
-    except:
+    except Exception as e:
+        print(e)
         return jsonify({'status': 'error', 'message': 'Error clearing thread'}), 500
 
 if __name__ == '__main__':

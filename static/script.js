@@ -252,7 +252,6 @@ function confirmSummarize(llm) {
 function clearThread(llm) {
     document.getElementById(`${llm}-input`).value = '';
     document.getElementById(`${llm}-output`).innerHTML = '';
-    clearInterval(timerInterval);
 
     fetch('/clear_thread', {
         method: 'POST',

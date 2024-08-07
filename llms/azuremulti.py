@@ -22,6 +22,7 @@ class AzureMulti():
         self.conversation_history = {}
         self.extra_messages = {}
         self.type = type
+        self.use_assistants = True if type == 'assistant' else False
         self.tools = [
             {
                 "type": "function",
