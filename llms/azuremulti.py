@@ -110,6 +110,12 @@ class AzureMulti():
         if user not in self.openai_assistant_id:
             try:
                 self.openai_assistant_id[user] = self.client.beta.assistants.create(model=self.model,tools=self.tools,instructions=self.agent_instructions)
+                try:
+                    # Append the new assistant id
+                    with open('azure_openai_assistants.txt', 'a') as f:
+                        f.write(f"{self.openai_assistant_id[user].id}\n")
+                except Exception as e:
+                    print(f'Could not write Azure Assistant ID to file: {e}')
             except Exception as e:
                 print(f'Could not create Azure Assistant: {e}')
 

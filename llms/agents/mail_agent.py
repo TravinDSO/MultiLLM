@@ -251,7 +251,8 @@ class AzureMailAgent(AzureMulti):
         Only use the outlook_mail_details tool if you need more information on a specific email.
         If you don't find what you need, try using the mail search tools again.
         Verify the information you find is accurate and relevant prior to responsing to the user.
-        Your response must be less than 100k characters.
+        For all tools, wait for the response before continuing to the next tool.
+        Your response must be less than 10k characters.
         """
         # Localized instructions for the orchestrator
         self.agent_instructions += """

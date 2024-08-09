@@ -9,12 +9,14 @@ from llms.agents.jira_agent import AzureJiraAgent
 from llms.agents.websearch_agent import AzureWebsearchAgent
 from llms.agents.mail_agent import AzureMailAgent
 from llms.agents.tasks_agent import AzureTasksAgent
+from llms.agents.quantive_agent import AzureQuantiveAgent
 from llms.tools.weather import WeatherChecker
 
 # Inherit from the OpenaiMulti class
 class AzureOrchestrator(AzureMulti):
     def __init__(self, api_key,model='gpt-4o',endpoint='',version='',info_link='',type='assistant', wait_limit=300,
-                 google_key="",google_cx="",confluence_url="",confluence_token="",
+                 google_key="",google_cx="",quantive_url="",quantive_key="",quantive_account_id="",
+                 confluence_url="",confluence_token="",
                  jira_url="",jira_token="",openweathermap_key=""):
         # Call the parent class constructor
         super().__init__(api_key,model,endpoint,version,info_link,wait_limit,type)
@@ -23,6 +25,7 @@ class AzureOrchestrator(AzureMulti):
         self.azure_agent = AzureMulti(api_key=api_key,model=model,endpoint=endpoint,version=version,type = 'assistant')
         self.confluence_agent = AzureConfluenceAgent(api_key=api_key,model=model,endpoint=endpoint,version=version,type = 'assistant',confluence_url=confluence_url,confluence_token=confluence_token)
         self.jira_agent = AzureJiraAgent(api_key=api_key,model=model,endpoint=endpoint,version=version,type = 'assistant',jira_url=jira_url,jira_token=jira_token)
+        self.quantive_agent = AzureQuantiveAgent(api_key=api_key,model=model,endpoint=endpoint,version=version,type = 'assistant',quantive_url=quantive_url,quantive_key=quantive_key,quantive_account_id=quantive_account_id,confluence_url=confluence_url,confluence_token=confluence_token,jira_url=jira_url,jira_token=jira_token)
         self.websearch_agent = AzureWebsearchAgent(api_key=api_key,model=model,endpoint=endpoint,version=version,type = 'assistant',google_key=google_key,google_cx=google_cx)
         self.mail_agent = AzureMailAgent(api_key=api_key,model=model,endpoint=endpoint,version=version,type = 'assistant')
         self.tasks_agent = AzureTasksAgent(api_key=api_key,model=model,endpoint=endpoint,version=version,type = 'assistant')
@@ -39,13 +42,15 @@ class AzureOrchestrator(AzureMulti):
         If you are asked for availability, this means you should check for non-meeting times/dates.
         If someone asks for information from the Wiki or Confluence, you should as the agent_confluence tool.
         If someone asks for information from JIRA, you should use the agent_jira tool.
-        If someone asks a business question, the agent_jira and agent_confluence tools should be asked as well.
+        If someone asks for imformation from Quantive, you should use the agent_quantive tool.
+        If someone asks a business question, the agent_jira, agent_confluence and agent_quantive tools should be asked as well.
         Always include supporting URLs in your response.
         Links should always be HTML formatted using href so they can be clicked on. Example: <a href="https://www.example.com" target"_blank">Page Title</a>
         Images responses should be formatted in HTML to display the image. Example: <img src="https://www.example.com/image.jpg" alt="image">
         Use the agent_mathmatician tool when attempting to solve mathmatical or logical problems. Include all supporting information in the prompt.
         Use the agent_researcher tool when attempting to respond to highly factual or technical prompts. This tool will provide you with feedback to improve your response.
         The agent_writer tool can be used to enhance your response with professional writing skills.
+        For all tools, wait for the response before continuing to the next tool.
         For all tools, you should ask follow-up questions to get more information if needed.
         """
 
@@ -251,6 +256,22 @@ class AzureOrchestrator(AzureMulti):
                     "required": ["prompt"]
                     }
                 }
+            },{
+            "type": "function",
+            "function": {
+                    "name": "agent_quantive",
+                    "description": "Use this agent to search the Quantive system for information related to the question/problem. Include a time range and supporting information if nessesary.",
+                    "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "prompt": {
+                        "type": "string",
+                        "description": "Prompt, asking the agent to search the Quantive system for information related to the user's question/problem."
+                        }
+                    },
+                    "required": ["prompt"]
+                    }
+                }
             }
         ]
 
@@ -296,6 +317,9 @@ class AzureOrchestrator(AzureMulti):
         elif tool_name == "agent_tasksearch":
             self.extra_messages[user].append(f'<HR><i>Asking the Agent Tasksearch (Azure): {args["prompt"]}</i>')
             results = self.tasks_agent.generate(user, args['prompt'])
+        elif tool_name == "agent_quantive":
+            self.extra_messages[user].append(f'<HR><i>Asking the Agent Quantive (Azure): {args["prompt"]}</i>')
+            results = self.quantive_agent.generate(user, args['prompt'])
         else:
             results =  "Tool not supported"
         

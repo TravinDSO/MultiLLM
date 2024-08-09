@@ -104,16 +104,12 @@ class OpenaiMulti():
         if user not in self.openai_assistant_id:
             try:
                 self.openai_assistant_id[user] = self.client.beta.assistants.create(model=self.model,tools=self.tools,instructions=self.agent_instructions)
-                # Update openai_assistants.json with the new assistant id
-                with open('openai_assistants.json', 'w') as f:
-                    # If data existing append the id to the json file, otherwise create a new json file
-                    try:
-                        data = json.load(f)
-                        data[user] = self.openai_assistant_id[user].id
-                        json.dump(data, f)
-                    except:
-                        data = {user: self.openai_assistant_id[user].id}
-                        json.dump(data, f)
+                try:
+                    # Append the new assistant id
+                    with open('openai_assistants.txt', 'a') as f:
+                        f.write(f"{self.openai_assistant_id[user].id}\n")
+                except Exception as e:
+                    print(f'Could not write OpenAI Assistant ID to file: {e}')
             except Exception as e:
                 print(f'Could not create Assistant: {e}')
 

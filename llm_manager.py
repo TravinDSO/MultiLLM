@@ -25,25 +25,51 @@ class LLMManager:
         self.llms = {}
         self.llm_links = {}
 
-        # Check if openai_assistants.json exists and if so, itterate through the file and delete the assistants
-        if os.path.exists('openai_assistants.json'):
+        # Check if openai_assistants.txt exists and if so, iterate through the file and delete the assistants
+        if os.path.exists('openai_assistants.txt'):
             client = openai.Client(api_key=os.getenv('OPENAI_API_KEY'))
-            with open('openai_assistants.json', 'r') as f:
+            with open('openai_assistants.txt', 'r') as f:
+                # Read all lines (each line corresponds to an assistant ID)
+                assistant_ids = f.readlines()
+
+            for assistant_id in assistant_ids:
+                assistant_id = assistant_id.strip()  # Remove any trailing newline characters
                 try:
-                    assistants = json.load(f)
-                except:
-                    assistants = []
-            for assistant in assistants:
-                try:
-                    response = client.beta.assistants.delete(assistants[assistant])
-                    if response.deleted == True:
-                        print(f"Assistant {assistants[assistant]} deleted.")
+                    response = client.beta.assistants.delete(assistant_id)
+                    if response.deleted:
+                        print(f"Assistant {assistant_id} deleted.")
                     else:
-                        print(f"Assistant {assistants[assistant]} not deleted.")
-                    # Delete the openai_assistants.json file
-                    os.remove('openai_assistants.json')
+                        print(f"Assistant {assistant_id} not deleted.")
                 except Exception as e:
-                    print(e)
+                    print(f"Error deleting Assistant {assistant_id}: {e}")
+
+            # Once all assistants are deleted, remove the openai_assistants.txt file
+            os.remove('openai_assistants.txt')
+
+        # Check if azure_openai_assistants.txt exists and if so, iterate through the file and delete the assistants
+        if os.path.exists('azure_openai_assistants.txt'):
+            client = openai.AzureOpenAI(
+                api_key=os.getenv('AZURE_OPENAI_API_KEY'),
+                api_version=os.getenv('AZURE_OPENAI_API_VERSION'),
+                azure_endpoint=os.getenv('AZURE_OPENAI_API_ENDPOINT')
+            )
+            with open('azure_openai_assistants.txt', 'r') as f:
+                # Read all lines (each line corresponds to an assistant ID)
+                assistant_ids = f.readlines()
+
+            for assistant_id in assistant_ids:
+                assistant_id = assistant_id.strip()  # Remove any trailing newline characters
+                try:
+                    response = client.beta.assistants.delete(assistant_id)
+                    if response.deleted:
+                        print(f"Assistant {assistant_id} deleted.")
+                    else:
+                        print(f"Assistant {assistant_id} not deleted.")
+                except Exception as e:
+                    print(f"Error deleting Assistant {assistant_id}: {e}")
+
+            # Once all assistants are deleted, remove the azure_openai_assistants.txt file
+            os.remove('azure_openai_assistants.txt')
 
         # Dynamically instantiate LLM objects based on the configuration
         for name, llm_config in config['llms'].items():

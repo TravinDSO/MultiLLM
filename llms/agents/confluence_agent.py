@@ -7,7 +7,7 @@ from llms.tools.confluence_search import ConfluenceSearch
 # Inherit from the OpenaiMulti class
 class AzureConfluenceAgent(AzureMulti):
     def __init__(self, api_key, model='gpt-4o', endpoint='', version='', info_link='', type='assistant',
-                 wait_limit=300, confluence_url="", confluence_token=""):
+                 wait_limit=1200, confluence_url="", confluence_token=""):
         # Call the parent class constructor
         super().__init__(api_key, model, endpoint, version, info_link, wait_limit, type)
 
@@ -22,6 +22,7 @@ class AzureConfluenceAgent(AzureMulti):
         If you don't find what you need, try using the confluence_search tool again.
         Verify the information you find is accurate and relevant prior to responsing to the user.
         Include supporting URLs to the Confleunce pages in your response.
+        For all tools, wait for the response before continuing to the next tool.
         Your response can be no larger than 10k characters.
         """
         # Additional tools created for the orchestrator
@@ -88,7 +89,7 @@ class AzureConfluenceAgent(AzureMulti):
             cql = f"siteSearch ~ \"{args['search_string']}\""
             if debug: print(f"Searching the Wiki (Confluence): {cql}")
             confluence_info = ""
-            confluence_data = self.confluence_search.site_search(cql, num_results=25)
+            confluence_data = self.confluence_search.site_search(cql, num_results=10)
             if confluence_data is None:
                 results = "No search results found"
             else:

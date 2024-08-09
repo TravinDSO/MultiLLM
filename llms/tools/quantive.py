@@ -15,18 +15,44 @@ class QuantiveAPI:
             'Content-Type': 'application/json'
         }
 
-    def search_goals(self, search_params):
-        search_endpoint = f'{self.base_url}/goals'
+    def search(self, query_string):
+        goal_search_results = self.search_goals(query_string)
+        goal_formatted_results = self.format_goals(goal_search_results)
+        metric_search_results = self.search_metrics(query_string)
+        metric_formatted_results = self.format_metrics(metric_search_results)
+        return goal_formatted_results + metric_formatted_results
+
+    def search_goals(self, query_string):
+        search_endpoint = f'{self.base_url}/goals?{query_string}'
         headers = self._get_headers()
 
-        response = requests.get(search_endpoint, headers=headers, params=search_params)
+        try:
+            response = requests.get(search_endpoint, headers=headers)
+        except requests.exceptions.RequestException as e:
+            print(f'Error: {e}')
+            return None
 
         if response.status_code == 200:
             return response.json()
         else:
             response.raise_for_status()
 
-    def format_search_results(self, search_results):
+    def search_metrics(self, query_string):
+        search_endpoint = f'{self.base_url}/metrics?{query_string}'
+        headers = self._get_headers()
+
+        try:
+            response = requests.get(search_endpoint, headers=headers)
+        except requests.exceptions.RequestException as e:
+            print(f'Error: {e}')
+            return None
+
+        if response.status_code == 200:
+            return response.json()
+        else:
+            response.raise_for_status()
+
+    def format_goals(self, search_results):
         output = ""
         for objective in search_results.get('items', []):
             url = objective.get('url', "")
@@ -34,7 +60,18 @@ class QuantiveAPI:
             desc = objective.get('description', "")
             status = objective.get('closedStatus', {}).get('status', "")
 
-            output += f'Title: {title}\nDescription: {desc}\nStatus: {status}\nURL: {url}\n\n'
+            output += f'[Objective] Title: {title}\nDescription: {desc}\nStatus: {status}\nURL: {url}\n\n'
+        return output
+    
+    def format_metrics(self, search_results):
+        output = ""
+        for metric in search_results.get('items', []):
+            url = metric.get('url', "")
+            title = metric.get('name', "")
+            desc = metric.get('description', "")
+            status = metric.get('closedStatus', {}).get('status', "")
+
+            output += f'[Key Result] Title: {title}\nDescription: {desc}\nStatus: {status}\nURL: {url}\n\n'
         return output
 
 
@@ -46,15 +83,22 @@ if __name__ == '__main__':
     BASE_URL = os.getenv('QUANTIVE_API_BASE_URL')
     ACCOUNT_ID = os.getenv('QUANTIVE_ACCOUNT_ID')
 
-    search_params = {
-        'filter': '{name: {$in: ["Project Management", "Software Development"]}}',
-        'fields': 'url,name,description,closedStatus'
-    }
+    # https://developer.quantive.com/api-reference/results/filtering.html
+
+    # Define the filters as a Python dictionary
+    search_text = 'Portfolio health'
+    text_search_filter = r'{name:{$regex: ".*' + search_text + '.*"}}'
+    search_fields = 'url,name,description,closedStatus'
+
+    # Combine the filter and fields parameters into a query string
+    query_string = f'filter={text_search_filter}&fields={search_fields}'
 
     quantive_api = QuantiveAPI(API_KEY, BASE_URL, ACCOUNT_ID)
     try:
-        search_results = quantive_api.search_goals(search_params)
-        formatted_results = quantive_api.format_search_results(search_results)
-        print(formatted_results)
+        goal_search_results = quantive_api.search_goals(query_string)
+        goal_formatted_results = quantive_api.format_goals(goal_search_results)
+        metric_search_results = quantive_api.search_metrics(query_string)
+        metric_formatted_results = quantive_api.format_metrics(metric_search_results)
+        print(goal_formatted_results + metric_formatted_results)
     except requests.exceptions.RequestException as e:
         print(f'Error: {e}')

@@ -19,6 +19,7 @@ class AzureWebsearchAgent(AzureMulti):
         As this is your primary job, you will always use the web_search tool to search for information on the web.
         If you don't find what you need, try using the confluence_search tool again.
         Verify the information you find is accurate and relevant prior to responsing to the user.
+        For all tools, wait for the response before continuing to the next tool.
         Your response can be no larger than 10k characters.
         """
         # Additional tools created for the orchestrator
