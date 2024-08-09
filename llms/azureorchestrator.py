@@ -14,12 +14,16 @@ from llms.tools.weather import WeatherChecker
 
 # Inherit from the OpenaiMulti class
 class AzureOrchestrator(AzureMulti):
-    def __init__(self, api_key,model='gpt-4o',endpoint='',version='',info_link='',type='assistant', wait_limit=300,
+    def __init__(self, api_key,model='gpt-4o',endpoint='',version='',
+                 api_key_2='',model_2='',endpoint_2='',version_2='',
+                 info_link='',type='assistant', wait_limit=300,
                  google_key="",google_cx="",quantive_url="",quantive_key="",quantive_account_id="",
                  confluence_url="",confluence_token="",
                  jira_url="",jira_token="",openweathermap_key=""):
         # Call the parent class constructor
-        super().__init__(api_key,model,endpoint,version,info_link,wait_limit,type)
+        super().__init__(api_key,model=model,endpoint=endpoint,version=version,
+                         api_key_2=api_key_2,model_2=model_2,endpoint_2=endpoint_2,version_2=version_2,
+                         info_link=info_link,wait_limit=wait_limit,type=type)
 
         #Agents
         self.azure_agent = AzureMulti(api_key=api_key,model=model,endpoint=endpoint,version=version,type = 'assistant')
@@ -281,7 +285,7 @@ class AzureOrchestrator(AzureMulti):
         args = json.loads(tool.function.arguments)
         if tool_name == "generate_image":
             self.extra_messages[user].append(f'<HR><i>Generating image using this prompt: {args["prompt"]}</i>')
-            results =  self.image_generate(user, args['prompt'])  # image gen is already part of the OpenaiMulti class
+            results = self.image_gen_tool.image_generate(prompt=args['prompt']) # image gen is already part of the AzureMulti class
         elif tool_name == "get_weather":
             self.extra_messages[user].append(f'<HR><i>Getting the weather for latitude: {args["latitude"]} and longitude: {args["longitude"]}</i>')
             results = json.dumps(self.weather_checker.get_weather(args['latitude'], args['longitude']))
