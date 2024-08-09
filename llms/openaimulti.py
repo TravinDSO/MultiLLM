@@ -1,16 +1,38 @@
 import openai
 import time
 import json
+from llms.tools.image_gen import OpenAI_ImageGen
 
 class OpenaiMulti():
-    def __init__(self, api_key,model='gpt-4o',info_link='',wait_limit=300, type='chat'):
-        self.client = openai.Client()
-        self.client.api_key = api_key
-        self.agent_instructions = ""
+    def __init__(self, api_key,model='gpt-4o',
+                 api_key_2='',model_2='gpt-4o',
+                 info_link='',wait_limit=300, type='chat'):
+        try:
+            self.client = openai.Client()
+            self.client.api_key = api_key
+            self.model = model
+            if api_key_2 != '':
+                try:
+                    self.client_2 = openai.Client()
+                    self.client_2.api_key = api_key_2
+                    self.model_2 = model_2
+                except Exception as e:
+                    print(f'Could not initialize OpenAI client 2: {e}')
+                    self.client_2 = self.client    
+                    self.model_2 = self.model
+            else:
+                self.client_2 = self.client
+                self.model_2 = self.model
+        except Exception as e:
+            print(f'Could not initialize OpenAI client: {e}')
+
+        self.image_gen_tool = OpenAI_ImageGen(api_key)
+
         self.openai_assistant_id = {}
         self.openai_assistant_thread = {}
-        self.model = model
         self.info_link = info_link
+        self.assistant_name = "MultiLLM (Agentic AI)"
+        self.agent_instructions = ""
         self.number_of_responses = 0
         self.wait_limit = int(wait_limit)
         self.type = type
@@ -51,23 +73,9 @@ class OpenaiMulti():
         args = json.loads(tool.function.arguments)
         if tool_name == "generate_image":
             self.extra_messages[user].append(f'<HR><i>Generating image using this prompt: {args["prompt"]}</i>')
-            return self.image_generate(user, args['prompt'])
+            return self.image_gen_tool.image_generate(prompt = args['prompt'])
         else:
             return "Tool not supported"
-
-    def image_generate(self, user, prompt, model='dall-e-3'):
-        try:
-            image = self.client.images.generate(
-                    model=model,
-                    prompt=prompt,
-                    n=1,
-                    size="1024x1024"
-            )                
-            # Return the image in a HTML tag
-            return f'<img src="{image.data[0].url}" alt={prompt} style="max-width: 100%;">'
-        except Exception as e:
-            print(f'Could not process image prompt to OpenAI: {e}')
-            return f'Could not process image: {e}'
 
     def direct_generate(self, user, prompt):
         # Check if the user has a conversation history and create one if not
@@ -103,7 +111,7 @@ class OpenaiMulti():
         # Check if the user has an Azure OpenAI ASSISTANT and create one if not
         if user not in self.openai_assistant_id:
             try:
-                self.openai_assistant_id[user] = self.client.beta.assistants.create(model=self.model,tools=self.tools,instructions=self.agent_instructions)
+                self.openai_assistant_id[user] = self.client.beta.assistants.create(name=self.assistant_name,model=self.model,tools=self.tools,instructions=self.agent_instructions)
                 try:
                     # Append the new assistant id
                     with open('openai_assistants.txt', 'a') as f:

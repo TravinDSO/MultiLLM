@@ -1,22 +1,53 @@
-from openai import AzureOpenAI
 import time
 import json
+from llms.tools.image_gen import Azure_OpenAI_ImageGen
+from openai import AzureOpenAI
 
 class AzureMulti():
-    def __init__(self, api_key, model='gpt-4o', endpoint='', version='', info_link='', wait_limit=300, type='chat'):
+    def __init__(self, api_key, endpoint='', version='', model='gpt-4o',
+                 api_key_2='', endpoint_2='', version_2='', model_2='gpt-4o',
+                 info_link='', wait_limit=300, type='chat'):
         try:
             self.client = AzureOpenAI(
                 api_key=api_key,
                 api_version=version,
                 azure_endpoint=endpoint
             )
+            self.model = model
+            self.api_key = api_key
+            self.endpoint = endpoint
+            self.version = version
+            if api_key_2:
+                try:
+                    self.client_2 = AzureOpenAI(
+                        api_key=api_key_2,
+                        api_version=version_2,
+                        azure_endpoint=endpoint_2
+                    )
+                    self.model_2 = model_2
+                    self.api_key_2 = api_key_2
+                    self.endpoint_2 = endpoint_2
+                    self.version_2 = version_2
+                except Exception as e:
+                    print(f'Could not create Azure Client 2: {e}')
+                    self.client_2 = self.client
+                    self.model_2 = self.model
+            else:
+                self.client_2 = self.client
+                self.model_2 = self.model
+                self.api_key_2 = self.api_key
+                self.endpoint_2 = self.endpoint
+                self.version_2 = self.version
         except Exception as e:
             print(f'Could not create Azure Client: {e}')
-        self.model = model
+
+        self.image_gen_tool = Azure_OpenAI_ImageGen(self.api_key_2, self.version_2, self.endpoint_2)
+
         self.openai_assistant_id = {}
         self.openai_assistant_thread = {}
         self.info_link = info_link
         self.wait_limit = int(wait_limit)
+        self.assistant_name = "MultiLLM (Agentic AI)"
         self.agent_instructions = None
         self.number_of_responses = 0
         self.conversation_history = {}
@@ -58,23 +89,10 @@ class AzureMulti():
         args = json.loads(tool.function.arguments)
         if tool_name == "generate_image":
             self.extra_messages[user].append(f'<HR><i>Generating image using this prompt: {args["prompt"]}</i>')
-            return self.image_generate(user, args['prompt'])
+            response = self.image_gen_tool.image_generate(prompt=args['prompt'])
+            return response
         else:
             return "Tool not supported"
-
-    def image_generate(self, user, prompt, model='dall-e-3'):
-        try:
-            image = self.client.images.generate(
-                model=model,
-                prompt=prompt,
-                n=1,
-                size="1024x1024"
-            )
-            # Return the image in an HTML tag
-            return f'<img src="{image.data[0].url}" alt="{prompt}" style="max-width: 100%;">'
-        except Exception as e:
-            print(f'Could not process image prompt to Azure: {e}')
-            return f'Could not process image: {e}'
 
     def direct_generate(self, user, prompt):
         # Check if the user has a conversation history and create one if not
@@ -109,7 +127,7 @@ class AzureMulti():
         # Check if the user has an Azure OpenAI ASSISTANT and create one if not
         if user not in self.openai_assistant_id:
             try:
-                self.openai_assistant_id[user] = self.client.beta.assistants.create(model=self.model,tools=self.tools,instructions=self.agent_instructions)
+                self.openai_assistant_id[user] = self.client.beta.assistants.create(name=self.assistant_name,model=self.model,tools=self.tools,instructions=self.agent_instructions)
                 try:
                     # Append the new assistant id
                     with open('azure_openai_assistants.txt', 'a') as f:
