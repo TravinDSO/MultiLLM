@@ -41,7 +41,7 @@ class AzureMulti():
         except Exception as e:
             print(f'Could not create Azure Client: {e}')
 
-        self.image_gen_tool = Azure_OpenAI_ImageGen(self.api_key_2, self.version_2, self.endpoint_2)
+        self.image_gen_tool = Azure_OpenAI_ImageGen(self.api_key, self.version, self.endpoint)
 
         self.openai_assistant_id = {}
         self.openai_assistant_thread = {}
