@@ -1,6 +1,6 @@
 import os
 import openai
-import faiss  # pip install faiss-cpu or faiss-gpu
+import faiss  # pip install faiss-cpu
 import numpy as np
 import pandas as pd
 import pdfplumber

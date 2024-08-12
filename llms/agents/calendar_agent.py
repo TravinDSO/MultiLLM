@@ -5,7 +5,7 @@ from llms.azuremulti import AzureMulti
 from llms.tools.gmail import GmailClient
 from llms.tools.office365 import OutlookClient
 
-class OpenAITasksAgent(OpenaiMulti):
+class OpenAICalAgent(OpenaiMulti):
     def __init__(self, api_key,model='gpt-4o',info_link='',type='assistant',
                  wait_limit=300):
         # Call the parent class constructor
@@ -14,9 +14,9 @@ class OpenAITasksAgent(OpenaiMulti):
         self.gmail_clients = {}
 
         self.agent_instructions = """
-        You are a specialized agent that keeps track of calendars, tasks, and to-do's.
+        You are a specialized agent that keeps track of calendars.
         As this is your primary job, you will always use all the tools available to search for information.
-        If you don't find what you need, try using the mail search tools again.
+        If you don't find what you need, try using the calendar search tool again.
         Verify the information you find is accurate and relevant prior to responsing to the user.
         For all tools, wait for the response before continuing to the next tool.
         Your response must be less than 10k characters.
@@ -100,7 +100,7 @@ class OpenAITasksAgent(OpenaiMulti):
         
         return results
     
-class AzureTasksAgent(AzureMulti):
+class AzureCalAgent(AzureMulti):
     def __init__(self, api_key,model='gpt-4o',endpoint='',version='',info_link='',type='assistant',
                  wait_limit=300):
         # Call the parent class constructor
@@ -109,7 +109,7 @@ class AzureTasksAgent(AzureMulti):
         self.outlook365_clients = {}
 
         self.agent_instructions = """
-        You are a specialized agent that keeps track of calendars, tasks, and to-do's.
+        You are a specialized agent that keeps track of calendars.
         Always get the current date and time using the date_time tool before using other tools.
         As this is your primary job, you will always use all the tools available to search for information.
         Use the search_calendar_events tool to search calendars for information. Include a time range and supporting information if nessesary.

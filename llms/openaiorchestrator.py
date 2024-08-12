@@ -7,7 +7,7 @@ from llms.claudemulti import ClaudeMulti
 from llms.ollamamulti import OllamaMulti
 from llms.agents.websearch_agent import OpenAIWebsearchAgent
 from llms.agents.mail_agent import OpenAIMailAgent
-from llms.agents.tasks_agent import OpenAITasksAgent
+from llms.agents.calendar_agent import OpenAICalAgent
 from llms.tools.weather import WeatherChecker
 
 # Inherit from the OpenaiMulti class
@@ -24,7 +24,7 @@ class OpenaiOrchestrator(OpenaiMulti):
         self.claude_agent = ClaudeMulti(claude_key)
         self.websearch_agent = OpenAIWebsearchAgent(api_key=api_key,model=model,type = 'assistant',google_key=google_key,google_cx=google_cx)
         self.mail_agent = OpenAIMailAgent(api_key=api_key,model=model,type = 'assistant')
-        self.tasks_agent = OpenAITasksAgent(api_key=api_key,model=model,type = 'assistant')
+        self.tasks_agent = OpenAICalAgent(api_key=api_key,model=model,type = 'assistant')
         self.math_agent = OllamaMulti('llama3.1:latest')
         self.weather_checker = WeatherChecker(openweathermap_key)
 

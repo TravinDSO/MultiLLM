@@ -8,7 +8,7 @@ from llms.agents.confluence_agent import AzureConfluenceAgent
 from llms.agents.jira_agent import AzureJiraAgent
 from llms.agents.websearch_agent import AzureWebsearchAgent
 from llms.agents.mail_agent import AzureMailAgent
-from llms.agents.tasks_agent import AzureTasksAgent
+from llms.agents.calendar_agent import AzureCalAgent
 from llms.agents.quantive_agent import AzureQuantiveAgent
 from llms.tools.weather import WeatherChecker
 
@@ -32,7 +32,7 @@ class AzureOrchestrator(AzureMulti):
         self.quantive_agent = AzureQuantiveAgent(api_key=api_key,model=model,endpoint=endpoint,version=version,type = 'assistant',quantive_url=quantive_url,quantive_key=quantive_key,quantive_account_id=quantive_account_id,confluence_url=confluence_url,confluence_token=confluence_token,jira_url=jira_url,jira_token=jira_token)
         self.websearch_agent = AzureWebsearchAgent(api_key=api_key,model=model,endpoint=endpoint,version=version,type = 'assistant',google_key=google_key,google_cx=google_cx)
         self.mail_agent = AzureMailAgent(api_key=api_key,model=model,endpoint=endpoint,version=version,type = 'assistant')
-        self.tasks_agent = AzureTasksAgent(api_key=api_key,model=model,endpoint=endpoint,version=version,type = 'assistant')
+        self.tasks_agent = AzureCalAgent(api_key=api_key,model=model,endpoint=endpoint,version=version,type = 'assistant')
         self.math_agent = OllamaMulti('llama3.1:latest')
         self.weather_checker = WeatherChecker(openweathermap_key)
 

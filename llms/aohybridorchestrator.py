@@ -8,7 +8,7 @@ from llms.agents.confluence_agent import OllamaConfluenceAgent
 from llms.agents.jira_agent import AzureJiraAgent
 from llms.agents.websearch_agent import AzureWebsearchAgent
 from llms.agents.mail_agent import AzureMailAgent
-from llms.agents.tasks_agent import AzureTasksAgent
+from llms.agents.calendar_agent import AzureCalAgent
 from llms.tools.weather import WeatherChecker
 
 # Inherit from the OpenaiMulti class
@@ -24,7 +24,7 @@ class AOHybridOrchestrator(AzureMulti):
         self.jira_agent = AzureJiraAgent(api_key=api_key,model=model,endpoint=endpoint,version=version,type = 'assistant',jira_url=jira_url,jira_token=jira_token)
         self.websearch_agent = AzureWebsearchAgent(api_key=api_key,model=model,endpoint=endpoint,version=version,type = 'assistant',google_key=google_key,google_cx=google_cx)
         self.mail_agent = AzureMailAgent(api_key=api_key,model=model,endpoint=endpoint,version=version,type = 'assistant')
-        self.tasks_agent = AzureTasksAgent(api_key=api_key,model=model,endpoint=endpoint,version=version,type = 'assistant')
+        self.tasks_agent = AzureCalAgent(api_key=api_key,model=model,endpoint=endpoint,version=version,type = 'assistant')
         self.llama3_agent = OllamaMulti('llama3.1:latest')
         self.weather_checker = WeatherChecker(openweathermap_key)
 
