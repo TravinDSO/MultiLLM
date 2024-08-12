@@ -32,7 +32,7 @@ class OpenaiOrchestrator(OpenaiMulti):
         You are an orchestrator agent. You should maximize the use of the tools available to you.
         Use the agent_websearch tool to find real-time information that may not be available in the model.
         Use the agent_mailsearch tool to search user mail for information.
-        Use the agent_tasksearch tool to search user tasks and calendars for information.
+        Use agent_calendarsearch tool to search user tasks and calendars for information.
         Links should always be HTML formatted using href so they can be clicked on. Example: <a href="https://www.example.com" target"_blank">Page Title</a>
         Images responses should be formatted in HTML to display the image. Example: <img src="https://www.example.com/image.jpg" alt="image">
         Use the agent_mathmatician tool when attempting to solve mathmatical or logical problems. Include all supporting information in the prompt.
@@ -199,14 +199,14 @@ class OpenaiOrchestrator(OpenaiMulti):
             },{
             "type": "function",
             "function": {
-                    "name": "agent_tasksearch",
-                    "description": "Use this agent to search the user's tasks related to the question/problem. Include a time range and supporting information if nessesary.",
+                    "name": "agent_calendarsearch",
+                    "description": "Use this agent to search the user's calendar related to the question/problem. Include a time range and supporting information if nessesary.",
                     "parameters": {
                     "type": "object",
                     "properties": {
                         "prompt": {
                         "type": "string",
-                        "description": "Prompt, asking the agent to search user's task for information related to the user's question/problem."
+                        "description": "Prompt, asking the agent to search user's calendar for information related to the user's question/problem."
                         }
                     },
                     "required": ["prompt"]
@@ -249,8 +249,8 @@ class OpenaiOrchestrator(OpenaiMulti):
         elif tool_name == "agent_mailsearch":
             if debug: print(f"Asking the Agent Mailsearcher (OpenAI)")
             results = self.mail_agent.generate(user, args['prompt'])
-        elif tool_name == "agent_tasksearch":
-            if debug: print(f"Asking the Agent Tasksearcher (OpenAI)")
+        elif tool_name == "agent_calendarsearch":
+            if debug: print(f"Asking the Agent Calendar searcher (OpenAI)")
             results = self.tasks_agent.generate(user, args['prompt'])
         else:
             results =  "Tool not supported"
