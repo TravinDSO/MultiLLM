@@ -101,10 +101,9 @@ class OpenAICalAgent(OpenaiMulti):
         return results
     
 class AzureCalAgent(AzureMulti):
-    def __init__(self, api_key,model='gpt-4o',endpoint='',version='',info_link='',type='assistant',
-                 wait_limit=300):
+    def __init__(self, api_key,model='gpt-4o',endpoint='',version='',info_link='',type='assistant',agent_name='Azure Calendar Agent',wait_limit=300):
         # Call the parent class constructor
-        super().__init__(api_key,model,endpoint,version,info_link,wait_limit,type)
+        super().__init__(api_key=api_key,model=model,endpoint=endpoint,version=version,info_link=info_link,type=type,wait_limit=wait_limit,agent_name=agent_name)
 
         self.outlook365_clients = {}
 
@@ -119,7 +118,7 @@ class AzureCalAgent(AzureMulti):
         If you are asked to search for non-specific things such as 'meetings' or 'events', just search with '*' as the search string.
         If you don't find what you need, try using the search tools again.
         Verify the information you find is accurate and relevant prior to responsing to the user.
-        Your response must be less than 100k characters.
+        Your response must be less than 10k characters.
         """
         # Localized instructions for the orchestrator
         self.agent_instructions += """

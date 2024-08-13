@@ -5,44 +5,21 @@ from openai import AzureOpenAI
 
 class AzureMulti():
     def __init__(self, api_key, endpoint='', version='', model='gpt-4o',
-                 api_key_2='', endpoint_2='', version_2='', model_2='gpt-4o',
-                 info_link='', wait_limit=300, type='chat'):
+                 info_link='', wait_limit=300, type='chat', agent_name=f'Azure Generic Assistant'):
+        
+        self.agent_name = agent_name
+        
         try:
             self.client = AzureOpenAI(
                 api_key=api_key,
                 api_version=version,
                 azure_endpoint=endpoint
             )
-            self.model = model
-            self.api_key = api_key
-            self.endpoint = endpoint
-            self.version = version
-            if api_key_2:
-                try:
-                    self.client_2 = AzureOpenAI(
-                        api_key=api_key_2,
-                        api_version=version_2,
-                        azure_endpoint=endpoint_2
-                    )
-                    self.model_2 = model_2
-                    self.api_key_2 = api_key_2
-                    self.endpoint_2 = endpoint_2
-                    self.version_2 = version_2
-                except Exception as e:
-                    print(f'Could not create Azure Client 2: {e}')
-                    self.client_2 = self.client
-                    self.model_2 = self.model
-            else:
-                self.client_2 = self.client
-                self.model_2 = self.model
-                self.api_key_2 = self.api_key
-                self.endpoint_2 = self.endpoint
-                self.version_2 = self.version
+            print(f'Azure Client {self.agent_name} created successfully')
         except Exception as e:
-            print(f'Could not create Azure Client: {e}')
+            print(f'Could not create Azure Client {self.agent_name}: {e}')
 
-        self.image_gen_tool = Azure_OpenAI_ImageGen(self.api_key, self.version, self.endpoint)
-
+        self.model = model
         self.openai_assistant_id = {}
         self.openai_assistant_thread = {}
         self.info_link = info_link
@@ -53,7 +30,9 @@ class AzureMulti():
         self.conversation_history = {}
         self.extra_messages = {}
         self.type = type
-        self.use_assistants = True if type == 'assistant' else False
+
+        self.image_gen_tool = Azure_OpenAI_ImageGen(api_key,version,endpoint)
+
         self.tools = [
             {
                 "type": "function",
@@ -120,7 +99,7 @@ class AzureMulti():
             response = completion.choices[0].message.content
             return response
         except Exception as e:
-            print(f'Could not process direct prompt to Azure: {e}')
+            print(f'Could not process direct prompt to Azure {self.agent_name}: {e}')
             return f'Could not process direct prompt to Azure: {e}'
 
     def assistant_generate(self, user, prompt):
@@ -128,21 +107,23 @@ class AzureMulti():
         if user not in self.openai_assistant_id:
             try:
                 self.openai_assistant_id[user] = self.client.beta.assistants.create(name=self.assistant_name,model=self.model,tools=self.tools,instructions=self.agent_instructions)
+                print(f'Azure Assistant {self.agent_name} created successfully')
                 try:
                     # Append the new assistant id
                     with open('azure_openai_assistants.txt', 'a') as f:
                         f.write(f"{self.openai_assistant_id[user].id}\n")
                 except Exception as e:
-                    print(f'Could not write Azure Assistant ID to file: {e}')
+                    print(f'Could not write Azure Assistant ID to file {self.agent_name}: {e}')
             except Exception as e:
-                print(f'Could not create Azure Assistant: {e}')
+                print(f'Could not create Azure Assistant {self.agent_name}: {e}')
 
         # Check if the user has an Azure OpenAI Assistant THREAD and create one if not
         if user not in self.openai_assistant_thread:
             try:
                 self.openai_assistant_thread[user] = self.client.beta.threads.create()
+                print(f'Azure Assistant Thread {self.agent_name} created successfully')
             except Exception as e:
-                print(f'Could not create Azure Assistant Thread: {e}')
+                print(f'Could not create Azure Assistant Thread {self.agent_name}: {e}')
 
         client_message = self.client.beta.threads.messages.create(
             thread_id=self.openai_assistant_thread[user].id,
@@ -187,12 +168,12 @@ class AzureMulti():
                         tool_outputs=tool_outputs
                     )
                 except Exception as e:
-                    print(f'Error submitting tool output: {e}')
+                    print(f'Error submitting tool output {self.agent_name}: {e}')
             else:
                 time.sleep(1)
 
         if result.status != "completed":
-            response = f"No response from Assistant after {self.wait_limit} seconds."
+            response = f"No response from Assistant after seconds."
         else:
             response = self.client.beta.threads.messages.list(
                 thread_id=self.openai_assistant_thread[user].id
@@ -210,7 +191,7 @@ class AzureMulti():
         return messages
 
     def check_for_previous_conversation(self, user):
-        if self.use_assistants:
+        if self.type == 'assistant':
             # Check if the user has actual conversation history in self.number_of_responses
             if user in self.openai_assistant_thread and self.number_of_responses > 0:
                 return True
@@ -223,14 +204,14 @@ class AzureMulti():
                 return False
 
     def summarize_conversation(self, user):
-        if self.type in ['assistant', 'chat']:
+        if self.type == 'assistant':
             prompt = 'Summarize the current conversation. If code was generated, preserve it, presenting the most complete version to the user.'
             return self.generate(user, prompt)
         else:
             return "Not supported"
 
     def clear_conversation(self, user):
-        if self.use_assistants:
+        if self.type == 'assistant':
             self.client.beta.threads.delete(thread_id=self.openai_assistant_thread[user].id)
             self.openai_assistant_thread[user] = self.client.beta.threads.create()
             self.number_of_responses = 0

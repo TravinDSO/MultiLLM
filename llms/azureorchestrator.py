@@ -15,24 +15,22 @@ from llms.tools.weather import WeatherChecker
 # Inherit from the OpenaiMulti class
 class AzureOrchestrator(AzureMulti):
     def __init__(self, api_key,model='gpt-4o',endpoint='',version='',
-                 api_key_2='',model_2='',endpoint_2='',version_2='',
-                 info_link='',type='assistant', wait_limit=300,
+                 info_link='',type='assistant', wait_limit=300,agent_name="Azure Orchestrator",
                  google_key="",google_cx="",quantive_url="",quantive_key="",quantive_account_id="",
                  confluence_url="",confluence_token="",
                  jira_url="",jira_token="",openweathermap_key=""):
         # Call the parent class constructor
         super().__init__(api_key,model=model,endpoint=endpoint,version=version,
-                         api_key_2=api_key_2,model_2=model_2,endpoint_2=endpoint_2,version_2=version_2,
-                         info_link=info_link,wait_limit=wait_limit,type=type)
+                         info_link=info_link,wait_limit=wait_limit,type=type,agent_name=agent_name)
 
         #Agents
-        self.azure_agent = AzureMulti(api_key=api_key,model=model,endpoint=endpoint,version=version,type = 'assistant')
-        self.confluence_agent = AzureConfluenceAgent(api_key=api_key,model=model,endpoint=endpoint,version=version,type = 'assistant',confluence_url=confluence_url,confluence_token=confluence_token)
-        self.jira_agent = AzureJiraAgent(api_key=api_key,model=model,endpoint=endpoint,version=version,type = 'assistant',jira_url=jira_url,jira_token=jira_token)
-        self.quantive_agent = AzureQuantiveAgent(api_key=api_key,model=model,endpoint=endpoint,version=version,type = 'assistant',quantive_url=quantive_url,quantive_key=quantive_key,quantive_account_id=quantive_account_id,confluence_url=confluence_url,confluence_token=confluence_token,jira_url=jira_url,jira_token=jira_token)
-        self.websearch_agent = AzureWebsearchAgent(api_key=api_key,model=model,endpoint=endpoint,version=version,type = 'assistant',google_key=google_key,google_cx=google_cx)
-        self.mail_agent = AzureMailAgent(api_key=api_key,model=model,endpoint=endpoint,version=version,type = 'assistant')
-        self.tasks_agent = AzureCalAgent(api_key=api_key,model=model,endpoint=endpoint,version=version,type = 'assistant')
+        self.azure_agent = AzureMulti(api_key=api_key,model=model,endpoint=endpoint,version=version,type='assistant',agent_name='Azure Assistant')
+        self.confluence_agent = AzureConfluenceAgent(api_key=api_key,model=model,endpoint=endpoint,version=version,confluence_url=confluence_url,confluence_token=confluence_token)
+        self.jira_agent = AzureJiraAgent(api_key=api_key,model=model,endpoint=endpoint,version=version,jira_url=jira_url,jira_token=jira_token)
+        self.quantive_agent = AzureQuantiveAgent(api_key=api_key,model=model,endpoint=endpoint,version=version,quantive_url=quantive_url,quantive_key=quantive_key,quantive_account_id=quantive_account_id,confluence_url=confluence_url,confluence_token=confluence_token,jira_url=jira_url,jira_token=jira_token)
+        self.websearch_agent = AzureWebsearchAgent(api_key=api_key,model=model,endpoint=endpoint,version=version,google_key=google_key,google_cx=google_cx)
+        self.mail_agent = AzureMailAgent(api_key=api_key,model=model,endpoint=endpoint,version=version)
+        self.tasks_agent = AzureCalAgent(api_key=api_key,model=model,endpoint=endpoint,version=version)
         self.math_agent = OllamaMulti('llama3.1:latest')
         self.weather_checker = WeatherChecker(openweathermap_key)
 

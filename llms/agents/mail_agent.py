@@ -236,10 +236,9 @@ class OpenAIMailAgent(OpenaiMulti):
         return results
     
 class AzureMailAgent(AzureMulti):
-    def __init__(self, api_key,model='gpt-4o',endpoint='',version='',info_link='',type='assistant',
-                 wait_limit=300):
+    def __init__(self, api_key,model='gpt-4o',endpoint='',version='',info_link='',type='assistant',wait_limit=300,agent_name='Azure Mail Agent'):
         # Call the parent class constructor
-        super().__init__(api_key,model,endpoint,version,info_link,wait_limit,type)
+        super().__init__(api_key=api_key, model=model, endpoint=endpoint, version=version, info_link=info_link, wait_limit=wait_limit, type=type, agent_name=agent_name)
 
         self.outlook365_clients = {}
 
