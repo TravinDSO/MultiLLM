@@ -8,31 +8,29 @@ from llms.agents.confluence_agent import AzureConfluenceAgent
 from llms.agents.jira_agent import AzureJiraAgent
 from llms.agents.websearch_agent import AzureWebsearchAgent
 from llms.agents.mail_agent import AzureMailAgent
-from llms.agents.tasks_agent import AzureTasksAgent
+from llms.agents.calendar_agent import AzureCalAgent
 from llms.agents.quantive_agent import AzureQuantiveAgent
 from llms.tools.weather import WeatherChecker
 
 # Inherit from the OpenaiMulti class
 class AzureOrchestrator(AzureMulti):
     def __init__(self, api_key,model='gpt-4o',endpoint='',version='',
-                 api_key_2='',model_2='',endpoint_2='',version_2='',
-                 info_link='',type='assistant', wait_limit=300,
+                 info_link='',type='assistant', wait_limit=300,agent_name="Azure Orchestrator",
                  google_key="",google_cx="",quantive_url="",quantive_key="",quantive_account_id="",
                  confluence_url="",confluence_token="",
                  jira_url="",jira_token="",openweathermap_key=""):
         # Call the parent class constructor
         super().__init__(api_key,model=model,endpoint=endpoint,version=version,
-                         api_key_2=api_key_2,model_2=model_2,endpoint_2=endpoint_2,version_2=version_2,
-                         info_link=info_link,wait_limit=wait_limit,type=type)
+                         info_link=info_link,wait_limit=wait_limit,type=type,agent_name=agent_name)
 
         #Agents
-        self.azure_agent = AzureMulti(api_key=api_key,model=model,endpoint=endpoint,version=version,type = 'assistant')
-        self.confluence_agent = AzureConfluenceAgent(api_key=api_key,model=model,endpoint=endpoint,version=version,type = 'assistant',confluence_url=confluence_url,confluence_token=confluence_token)
-        self.jira_agent = AzureJiraAgent(api_key=api_key,model=model,endpoint=endpoint,version=version,type = 'assistant',jira_url=jira_url,jira_token=jira_token)
-        self.quantive_agent = AzureQuantiveAgent(api_key=api_key,model=model,endpoint=endpoint,version=version,type = 'assistant',quantive_url=quantive_url,quantive_key=quantive_key,quantive_account_id=quantive_account_id,confluence_url=confluence_url,confluence_token=confluence_token,jira_url=jira_url,jira_token=jira_token)
-        self.websearch_agent = AzureWebsearchAgent(api_key=api_key,model=model,endpoint=endpoint,version=version,type = 'assistant',google_key=google_key,google_cx=google_cx)
-        self.mail_agent = AzureMailAgent(api_key=api_key,model=model,endpoint=endpoint,version=version,type = 'assistant')
-        self.tasks_agent = AzureTasksAgent(api_key=api_key,model=model,endpoint=endpoint,version=version,type = 'assistant')
+        self.azure_agent = AzureMulti(api_key=api_key,model=model,endpoint=endpoint,version=version,type='assistant',agent_name='Azure Assistant')
+        self.confluence_agent = AzureConfluenceAgent(api_key=api_key,model=model,endpoint=endpoint,version=version,confluence_url=confluence_url,confluence_token=confluence_token)
+        self.jira_agent = AzureJiraAgent(api_key=api_key,model=model,endpoint=endpoint,version=version,jira_url=jira_url,jira_token=jira_token)
+        self.quantive_agent = AzureQuantiveAgent(api_key=api_key,model=model,endpoint=endpoint,version=version,quantive_url=quantive_url,quantive_key=quantive_key,quantive_account_id=quantive_account_id,confluence_url=confluence_url,confluence_token=confluence_token,jira_url=jira_url,jira_token=jira_token)
+        self.websearch_agent = AzureWebsearchAgent(api_key=api_key,model=model,endpoint=endpoint,version=version,google_key=google_key,google_cx=google_cx)
+        self.mail_agent = AzureMailAgent(api_key=api_key,model=model,endpoint=endpoint,version=version)
+        self.tasks_agent = AzureCalAgent(api_key=api_key,model=model,endpoint=endpoint,version=version)
         self.math_agent = OllamaMulti('llama3.1:latest')
         self.weather_checker = WeatherChecker(openweathermap_key)
 
@@ -41,8 +39,8 @@ class AzureOrchestrator(AzureMulti):
         Use the get_weather and get_forcast tools to check the current weather, temperature and forecast for a location.
         Use the agent_websearch tool to find real-time information that may not be available in the model.
         Use the agent_mailsearch tool to search user mail for information. Include a time range and supporting information if nessesary.
-        Use the agent_tasksearch tool to search user tasks and calendars for information. Include a time range and supporting information if nessesary.
-        The agent_tasksearch tool can also check room and employee availability to coordinate meetings.
+        Use the agent_calendarsearch tool to search user tasks and calendars for information. Include a time range and supporting information if nessesary.
+        The agent_calendarsearch tool can also check room and employee availability to coordinate meetings.
         If you are asked for availability, this means you should check for non-meeting times/dates.
         If someone asks for information from the Wiki or Confluence, you should as the agent_confluence tool.
         If someone asks for information from JIRA, you should use the agent_jira tool.
@@ -247,14 +245,14 @@ class AzureOrchestrator(AzureMulti):
             },{
             "type": "function",
             "function": {
-                    "name": "agent_tasksearch",
-                    "description": "Use this agent to search the user's tasks related to the question/problem. Include a time range and supporting information if nessesary.",
+                    "name": "agent_calendarsearch",
+                    "description": "Use this agent to search the user's calendar related to the question/problem. Include a time range and supporting information if nessesary.",
                     "parameters": {
                     "type": "object",
                     "properties": {
                         "prompt": {
                         "type": "string",
-                        "description": "Prompt, asking the agent to search user's task for information related to the user's question/problem."
+                        "description": "Prompt, asking the agent to search user's calendar for information related to the user's question/problem."
                         }
                     },
                     "required": ["prompt"]
@@ -318,8 +316,8 @@ class AzureOrchestrator(AzureMulti):
         elif tool_name == "agent_mailsearch":
             self.extra_messages[user].append(f'<HR><i>Asking the Agent Mailsearch (Azure): {args["prompt"]}</i>')
             results = self.mail_agent.generate(user, args['prompt'])
-        elif tool_name == "agent_tasksearch":
-            self.extra_messages[user].append(f'<HR><i>Asking the Agent Tasksearch (Azure): {args["prompt"]}</i>')
+        elif tool_name == "agent_calendarsearch":
+            self.extra_messages[user].append(f'<HR><i>Asking the Agent Calendar search (Azure): {args["prompt"]}</i>')
             results = self.tasks_agent.generate(user, args['prompt'])
         elif tool_name == "agent_quantive":
             self.extra_messages[user].append(f'<HR><i>Asking the Agent Quantive (Azure): {args["prompt"]}</i>')

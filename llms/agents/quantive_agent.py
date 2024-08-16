@@ -8,10 +8,10 @@ from llms.tools.jira_search import JiraSearch
 
 # Inherit from the OpenaiMulti class
 class AzureQuantiveAgent(AzureMulti):
-    def __init__(self, api_key, model='gpt-4o', endpoint='', version='', info_link='', type='assistant',
-                 wait_limit=300,quantive_url="",quantive_key="",quantive_account_id="",confluence_url="",confluence_token="",jira_url="",jira_token=""):
+    def __init__(self, api_key, model='gpt-4o', endpoint='', version='', info_link='', type='assistant',agent_name='Azure Quantive Agent',wait_limit=300,
+                 quantive_url="",quantive_key="",quantive_account_id="",confluence_url="",confluence_token="",jira_url="",jira_token=""):
         # Call the parent class constructor
-        super().__init__(api_key, model, endpoint, version, info_link, wait_limit, type)
+        super().__init__(api_key=api_key, model=model, endpoint=endpoint, version=version, info_link=info_link, wait_limit=wait_limit, type=type, agent_name=agent_name)
 
         # Tools
         self.quantive_search = QuantiveAPI(quantive_key,quantive_url,quantive_account_id)

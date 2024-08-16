@@ -5,10 +5,10 @@ from llms.openaimulti import OpenaiMulti
 from llms.tools.google_search import GoogleSearch
 
 class AzureWebsearchAgent(AzureMulti):
-    def __init__(self, api_key,model='gpt-4o',endpoint='',version='',info_link='',type='assistant',
-                 wait_limit=300, google_key="",google_cx=""):
+    def __init__(self, api_key,model='gpt-4o',endpoint='',version='',info_link='',type='assistant',agent_name='Azure Websearch Agent',wait_limit=300,
+                 google_key="",google_cx=""):
         # Call the parent class constructor
-        super().__init__(api_key,model,endpoint,version,info_link,wait_limit,type)
+        super().__init__(api_key=api_key, model=model, endpoint=endpoint, version=version, info_link=info_link, wait_limit=wait_limit, type=type, agent_name=agent_name)
 
         # Tools
         self.google_search = GoogleSearch(google_key,google_cx)
