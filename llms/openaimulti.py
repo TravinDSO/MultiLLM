@@ -216,8 +216,14 @@ class OpenaiMulti():
 
     def clear_conversation(self,user):
         if self.type == 'assistant':
-            self.client.beta.threads.delete(thread_id=self.openai_assistant_thread[user].id)
-            self.openai_assistant_thread[user] = self.client.beta.threads.create()
+            try:
+                self.client.beta.threads.delete(thread_id=self.openai_assistant_thread[user].id)
+            except Exception as e:
+                pass
+            try:
+                self.openai_assistant_thread[user] = self.client.beta.threads.create()
+            except Exception as e:
+                pass
             self.number_of_responses = 0
             return "Conversation cleared."
         elif self.type == 'chat':
