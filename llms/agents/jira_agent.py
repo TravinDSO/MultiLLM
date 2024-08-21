@@ -19,8 +19,7 @@ class AzureJiraAgent(AzureMulti):
         As this is your primary job, you will always use the jira_search tool to search for information in the Atlassian JIRA system.
         If you don't find what you need, try using the jira_search tool again.
         Verify the information you find is accurate and relevant prior to responsing to the user.
-        For all tools, wait for the response before continuing to the next tool.
-        Your response can be no larger than 10k characters.
+        For all tools, wait for the response before continuing to the next tool.c
         """
         # Additional tools created for the orchestrator
         self.tools = [
@@ -71,5 +70,7 @@ class AzureJiraAgent(AzureMulti):
             results = f"The current date and time is: {datetime.datetime.now()}"
         else:
             results =  "Tool not supported"
-        
+        # Check if the results are greater than 100k characters and truncate if necessary
+        if len(results) > 100000:
+            results = results[:100000] + '... (truncated due to length)'
         return results

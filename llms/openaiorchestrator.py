@@ -28,6 +28,12 @@ class OpenaiOrchestrator(OpenaiMulti):
         self.math_agent = OllamaMulti('llama3.1:latest')
         self.weather_checker = WeatherChecker(openweathermap_key)
 
+        # Set the token run size for each agent
+        self.websearch_agent.token_run_size = 3000
+        self.mail_agent.token_run_size = 3000
+        self.tasks_agent.token_run_size = 3000
+
+
         self.agent_instructions = """
         You are an orchestrator agent. You should maximize the use of the tools available to you.
         Use the agent_websearch tool to find real-time information that may not be available in the model.

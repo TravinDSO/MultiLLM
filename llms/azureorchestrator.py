@@ -34,6 +34,16 @@ class AzureOrchestrator(AzureMulti):
         self.math_agent = OllamaMulti('llama3.1:latest')
         self.weather_checker = WeatherChecker(openweathermap_key)
 
+        # Response token size for agents
+        self.azure_agent.token_run_size = 3000
+        self.confluence_agent.token_run_size = 3000
+        self.jira_agent.token_run_size = 3000
+        self.quantive_agent.token_run_size = 3000
+        self.websearch_agent.token_run_size = 3000
+        self.mail_agent.token_run_size = 3000
+        self.tasks_agent.token_run_size = 3000
+        
+
         self.agent_instructions = """
         You are an orchestrator agent. You should maximize the use of the tools available to you.
         Use the get_weather and get_forcast tools to check the current weather, temperature and forecast for a location.

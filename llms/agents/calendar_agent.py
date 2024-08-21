@@ -19,7 +19,6 @@ class OpenAICalAgent(OpenaiMulti):
         If you don't find what you need, try using the calendar search tool again.
         Verify the information you find is accurate and relevant prior to responsing to the user.
         For all tools, wait for the response before continuing to the next tool.
-        Your response must be less than 10k characters.
         """
 
         # Localized instructions for the orchestrator
@@ -118,7 +117,6 @@ class AzureCalAgent(AzureMulti):
         If you are asked to search for non-specific things such as 'meetings' or 'events', just search with '*' as the search string.
         If you don't find what you need, try using the search tools again.
         Verify the information you find is accurate and relevant prior to responsing to the user.
-        Your response must be less than 10k characters.
         """
         # Localized instructions for the orchestrator
         self.agent_instructions += """
@@ -213,7 +211,6 @@ class AzureCalAgent(AzureMulti):
         tool_name = tool.function.name
         debug = True # Set to True to print debug information
         args = json.loads(tool.function.arguments)
-        results = ""
         if tool_name == "search_calendar_events":
             events = None
             evt_details = ""
@@ -235,6 +232,9 @@ class AzureCalAgent(AzureMulti):
                 for event in events:
                      start = event['start'].get('dateTime', event['start'].get('date'))
                      evt_details += f"{start}: {event['subject']}\n"
+                # If results are greater than 100k characters, truncate the response
+                if len(evt_details) > 100000:
+                    evt_details = evt_details[:100000]
                 return evt_details
             else:
                  return 'No upcoming events found.'
@@ -251,6 +251,9 @@ class AzureCalAgent(AzureMulti):
             if debug: print(f"Checking room availability for {room_email} from {start_date} to {end_date}")
             try:
                 availability = self.outlook365_clients[user].check_room_availability(room_email, start_date, end_date)
+                # If results are greater than 100k characters, truncate the response
+                if len(availability) > 100000:
+                    availability = availability[:100000]
                 return availability
             except Exception as e:
                 return f"An error occurred: {e}"
@@ -267,6 +270,9 @@ class AzureCalAgent(AzureMulti):
             if debug: print(f"Checking person availability for {person_email} from {start_date} to {end_date}")
             try:
                 availability = self.outlook365_clients[user].check_person_availability(person_email, start_date, end_date)
+                # If results are greater than 100k characters, truncate the response
+                if len(availability) > 100000:
+                    availability = availability[:100000]
                 return availability
             except Exception as e:
                 return f"An error occurred: {e}"

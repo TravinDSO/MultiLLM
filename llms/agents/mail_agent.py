@@ -19,7 +19,6 @@ class OpenAIMailAgent(OpenaiMulti):
         When dealing with Labels, always use the gmail_list_labels tool to ensure you are using the correct label ID.
         If you don't find what you need, try using the mail search tools again.
         Verify the information you find is accurate and relevant prior to responsing to the user.
-        Your response must be less than 100k characters.
         """
         # Additional tools created for the orchestrator
         self.tools = [
@@ -251,7 +250,6 @@ class AzureMailAgent(AzureMulti):
         If you don't find what you need, try using the mail search tools again.
         Verify the information you find is accurate and relevant prior to responsing to the user.
         For all tools, wait for the response before continuing to the next tool.
-        Your response must be less than 10k characters.
         """
         # Localized instructions for the orchestrator
         self.agent_instructions += """
@@ -342,7 +340,7 @@ class AzureMailAgent(AzureMulti):
                     print(title)
             
             if msg_details:
-                return msg_details
+                results = msg_details
             else:
                 return 'No messages found.'
         elif tool_name == "outlook_mail_details":
@@ -353,11 +351,14 @@ class AzureMailAgent(AzureMulti):
                     return f"An error occurred: {e}"
             if debug: print(f"Getting email details: {args['email_id']}")
             email_details = self.outlook365_clients[user].get_email_details(args['email_id'])
-            return email_details
+            results = email_details
         elif tool_name == "date_time":
             if debug: print(f"Getting the date and time")
             results = f"The current date and time is: {datetime.datetime.now()}"
         else:
             results =  "Tool not supported"
-        
+
+        # Check if the results are greater than 100k characters and truncate if necessary
+        if len(results) > 100000:
+            results = results[:100000] + '... (truncated due to length)'
         return results

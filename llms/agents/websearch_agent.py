@@ -20,7 +20,6 @@ class AzureWebsearchAgent(AzureMulti):
         If you don't find what you need, try using the confluence_search tool again.
         Verify the information you find is accurate and relevant prior to responsing to the user.
         For all tools, wait for the response before continuing to the next tool.
-        Your response can be no larger than 10k characters.
         """
         # Additional tools created for the orchestrator
         self.tools = [
@@ -80,7 +79,6 @@ class OpenAIWebsearchAgent(OpenaiMulti):
         As this is your primary job, you will always use the web_search tool to search for information on the web.
         If you don't find what you need, try using the confluence_search tool again.
         Verify the information you find is accurate and relevant prior to responsing to the user.
-        Your response must be less than 100k characters.
         """
         # Additional tools created for the orchestrator
         self.tools = [
@@ -126,10 +124,12 @@ class OpenAIWebsearchAgent(OpenaiMulti):
                     #append the link and page test
                     web_info += f"Link: {link}\nPage Text: {page_text}\n"
                 results = f'Your search to answer the question produced the following results:\n{web_info}'
+                # If results are greater than 100k characters, truncate the response
+                if len(results) > 100000:
+                    results = results[:100000]
+            return results
         elif tool_name == "date_time":
             if debug: print(f"Getting the date and time")
-            results = f"The current date and time is: {datetime.datetime.now()}"
+            return f"The current date and time is: {datetime.datetime.now()}"
         else:
-            results =  "Tool not supported"
-        
-        return results
+            return "Tool not supported"

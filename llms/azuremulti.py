@@ -30,6 +30,7 @@ class AzureMulti():
         self.conversation_history = {}
         self.extra_messages = {}
         self.type = type
+        self.token_run_size = 0 # Keep 0 to disable token run size
 
         self.image_gen_tool = Azure_OpenAI_ImageGen(api_key,version,endpoint)
 
@@ -131,10 +132,18 @@ class AzureMulti():
             content=prompt
         )
 
-        run = self.client.beta.threads.runs.create(
-            thread_id=self.openai_assistant_thread[user].id,
-            assistant_id=self.openai_assistant_id[user].id
-        )
+        if self.token_run_size > 0:
+            run = self.client.beta.threads.runs.create(
+                thread_id=self.openai_assistant_thread[user].id,
+                assistant_id=self.openai_assistant_id[user].id,
+                max_completion_tokens=self.token_run_size
+            )
+        else:
+            run = self.client.beta.threads.runs.create(
+                thread_id=self.openai_assistant_thread[user].id,
+                assistant_id=self.openai_assistant_id[user].id
+            )
+
         start_time = time.time()
         result = ""
         while (time.time() - start_time) < self.wait_limit:

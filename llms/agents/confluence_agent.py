@@ -23,7 +23,6 @@ class AzureConfluenceAgent(AzureMulti):
         Verify the information you find is accurate and relevant prior to responsing to the user.
         Include supporting URLs to the Confleunce pages in your response.
         For all tools, wait for the response before continuing to the next tool.
-        Your response can be no larger than 10k characters.
         """
         # Additional tools created for the orchestrator
         self.tools = [
@@ -123,7 +122,6 @@ class OllamaConfluenceAgent(OllamaMulti):
         If you don't find what you need, try using the confluence_search tool again.
         Verify the information you find is accurate and relevant prior to responding to the user.
         Include supporting URLs to the Confluence pages in your response.
-        Your response can be no larger than 10k characters.
         """
         # Additional tools created for the orchestrator
         self.tools = [
@@ -201,5 +199,7 @@ class OllamaConfluenceAgent(OllamaMulti):
             results = f"The current date and time is: {datetime.datetime.now()}"
         else:
             results = "Tool not supported"
-
+        # Check if the results are greater than 100k characters and truncate if necessary
+        if len(results) > 100000:
+            results = results[:100000] + '... (truncated due to length)'
         return results
