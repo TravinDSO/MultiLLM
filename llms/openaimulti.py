@@ -5,24 +5,11 @@ from llms.tools.image_gen import OpenAI_ImageGen
 
 class OpenaiMulti():
     def __init__(self, api_key,model='gpt-4o',
-                 api_key_2='',model_2='gpt-4o',
                  info_link='',wait_limit=300, type='chat'):
         try:
             self.client = openai.Client()
             self.client.api_key = api_key
             self.model = model
-            if api_key_2 != '':
-                try:
-                    self.client_2 = openai.Client()
-                    self.client_2.api_key = api_key_2
-                    self.model_2 = model_2
-                except Exception as e:
-                    print(f'Could not initialize OpenAI client 2: {e}')
-                    self.client_2 = self.client    
-                    self.model_2 = self.model
-            else:
-                self.client_2 = self.client
-                self.model_2 = self.model
         except Exception as e:
             print(f'Could not initialize OpenAI client: {e}')
 
