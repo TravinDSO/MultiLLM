@@ -34,11 +34,35 @@ def clear_outlook_pickles():
 def index():
     if 'username' in session:
         llms = llm_manager.get_available_llms()
+        # Limit LLMs to only those that the user is authorized to use
+        user = get_user_by_username(session['username'])
+        if user:
+            llms = [llm for llm in llms if llm in user['authorized_llms']]
+
         llm_links = llm_manager.get_llm_links()
         #capitalize the first letter of the username
         username = session['username'].capitalize()
         return render_template('index.html', llms=llms, llm_links=llm_links, username=username)
     return render_template('index.html', llms=[], llm_links={})
+
+def get_user_by_username(username):
+    with open('users.json', 'r') as f:
+        users = json.load(f)['users']
+        for user in users:
+            if user['username'] == username:
+                return user  # Return the entire user dictionary
+    return None  # Return None if the user is not found
+
+@app.route('/get_authorized_llms', methods=['POST'])
+def get_authorized_llms():
+    data = request.json
+    username = session['username']
+    user = get_user_by_username(username)
+    
+    if user:
+        return jsonify({"authorized_llms": user['authorized_llms']})
+    else:
+        return jsonify({"authorized_llms": []}), 403
 
 @app.route('/login', methods=['POST'])
 def login():
@@ -76,6 +100,15 @@ def generate():
     
     llm = llm_manager.get_llm(llm_name)
     user = session['username']
+
+    # Get the user's authorized LLMs
+    user_auth = get_user_by_username(user)
+
+    if not llm_name in user_auth['authorized_llms']:
+        # Log unauthorized access
+        llm_logger.log(ip_address, user, llm_name, prompt, "Unauthorized access")
+        return jsonify({"error": "Unauthorized access to this LLM"}), 403 
+
     if llm:
         try:
             response = llm.generate(user,prompt)

@@ -53,7 +53,6 @@ function login() {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            // Force a page reload to ensure all content is properly displayed
             window.location.reload();
         } else {
             document.getElementById('login-error').textContent = 'Invalid username or password';
@@ -293,13 +292,34 @@ function checkConversation(llm) {
 
 // Function to toggle LLM visibility
 function toggleLLM(llm) {
-    // If the LLM block is being toggled on, check if the user has a conversation
-    if (document.getElementById(llm + '-block').classList.contains('hidden')) {
-        checkConversation(llm);
-    }
-    var llmBlock = document.getElementById(llm + '-block');
-    llmBlock.classList.toggle('hidden');
-    adjustLayout();
+    fetch('/get_authorized_llms', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ username: document.getElementById('username').value }),
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.authorized_llms.includes(llm)) {
+            if (document.getElementById(llm + '-block').classList.contains('hidden')) {
+                checkConversation(llm);
+            }
+            var llmBlock = document.getElementById(llm + '-block');
+            llmBlock.classList.toggle('hidden');
+            adjustLayout();
+        } else {
+            // Untoggle the checkbox
+            var checkbox = document.getElementById(llm + '-checkbox');
+            // checkbox.checked = false;
+            // alert('You are not authorized to access this LLM.');
+            var llmBlock = document.getElementById(llm + '-block');
+            llmBlock.classList.toggle('hidden');
+        }
+    })
+    .catch(error => {
+        console.error('Error checking authorization:', error);
+    });
 }
 
 // Function to poll for extra messages

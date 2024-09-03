@@ -28,7 +28,7 @@
             <div class="llm-toggles">
                 {% for llm in llms %}
                 <label>
-                    <input type="checkbox" onclick="toggleLLM('{{ llm }}')">
+                    <input id="{{ llm }}-checkbox" type="checkbox" onclick="toggleLLM('{{ llm }}')">
                     {{ llm }}
                     <div class="spinner" id="{{ llm }}-spinner-toggle"></div>
                 </label>
