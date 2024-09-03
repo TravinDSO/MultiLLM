@@ -40,6 +40,25 @@ def index():
         return render_template('index.html', llms=llms, llm_links=llm_links, username=username)
     return render_template('index.html', llms=[], llm_links={})
 
+def get_user_by_username(username):
+    with open('users.json', 'r') as f:
+        users = json.load(f)['users']
+        for user in users:
+            if user['username'] == username:
+                return user  # Return the entire user dictionary
+    return None  # Return None if the user is not found
+
+@app.route('/get_authorized_llms', methods=['POST'])
+def get_authorized_llms():
+    data = request.json
+    username = session['username']
+    user = get_user_by_username(username)
+    
+    if user:
+        return jsonify({"authorized_llms": user['authorized_llms']})
+    else:
+        return jsonify({"authorized_llms": []}), 403
+
 @app.route('/login', methods=['POST'])
 def login():
     data = request.json
@@ -76,6 +95,10 @@ def generate():
     
     llm = llm_manager.get_llm(llm_name)
     user = session['username']
+
+    if not user or llm not in user.get('authorized_llms', []):
+        return jsonify({"error": "Unauthorized access to this LLM"}), 403 
+
     if llm:
         try:
             response = llm.generate(user,prompt)
