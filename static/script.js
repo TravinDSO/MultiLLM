@@ -311,8 +311,10 @@ function toggleLLM(llm) {
         } else {
             // Untoggle the checkbox
             var checkbox = document.getElementById(llm + '-checkbox');
-            checkbox.checked = false;
-            alert('You are not authorized to access this LLM.');
+            // checkbox.checked = false;
+            // alert('You are not authorized to access this LLM.');
+            var llmBlock = document.getElementById(llm + '-block');
+            llmBlock.classList.toggle('hidden');
         }
     })
     .catch(error => {

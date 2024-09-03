@@ -34,6 +34,11 @@ def clear_outlook_pickles():
 def index():
     if 'username' in session:
         llms = llm_manager.get_available_llms()
+        # Limit LLMs to only those that the user is authorized to use
+        user = get_user_by_username(session['username'])
+        if user:
+            llms = [llm for llm in llms if llm in user['authorized_llms']]
+
         llm_links = llm_manager.get_llm_links()
         #capitalize the first letter of the username
         username = session['username'].capitalize()
@@ -96,7 +101,12 @@ def generate():
     llm = llm_manager.get_llm(llm_name)
     user = session['username']
 
-    if not user or llm not in user.get('authorized_llms', []):
+    # Get the user's authorized LLMs
+    user_auth = get_user_by_username(user)
+
+    if not llm_name in user_auth['authorized_llms']:
+        # Log unauthorized access
+        llm_logger.log(ip_address, user, llm_name, prompt, "Unauthorized access")
         return jsonify({"error": "Unauthorized access to this LLM"}), 403 
 
     if llm:
