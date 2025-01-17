@@ -1,30 +1,33 @@
 import logging
+import datetime
 import os
 
 class Logger:
-    def __init__(self, log_file='llm.log'):
-        #set path to .\logs
-        self.log_file = os.path.join('logs', log_file)
+    def __init__(self):
+        # Ensure logs directory exists
+        os.makedirs('logs', exist_ok=True)
+        
+        # Set up logging configuration
+        logging.basicConfig(
+            filename=os.path.join('logs', 'app.log'),
+            level=logging.INFO,
+            format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+        )
+        self.logger = logging.getLogger(__name__)
 
-        self.logger = logging.getLogger('Logger')
-        self.logger.setLevel(logging.INFO)
-        
-        # Create handlers
-        file_handler = logging.FileHandler(self.log_file,encoding='utf-8')
-        #console_handler = logging.StreamHandler()
-        
-        # Create formatters and add it to handlers
-        formatter = logging.Formatter('%(asctime)s - %(message)s')
-        file_handler.setFormatter(formatter)
-        #console_handler.setFormatter(formatter)
-        
-        # Add handlers to the logger
-        self.logger.addHandler(file_handler)
-        #self.logger.addHandler(console_handler)
-    
-    def log(self, ip_address, user, llm, prompt, response):
-        #strip all newlines
-        prompt = prompt.replace('\n', ' ')
-        response = response.replace('\n', ' ')
+    def log_request(self, user, llm_name, prompt):
+        """Log an incoming request."""
+        self.logger.info(f"Request - User: {user}, LLM: {llm_name}, Prompt: {prompt}")
 
-        self.logger.info(f'IP Address ({ip_address}) | User ({user}) | LLM ({llm}) | Prompt({prompt}) | Response: ({response})')
+    def log_response(self, user, llm_name, response):
+        """Log a response from an LLM."""
+        self.logger.info(f"Response - User: {user}, LLM: {llm_name}, Response: {response[:200]}...")
+
+    def log_error(self, user, llm_name, error_message):
+        """Log an error."""
+        self.logger.error(f"Error - User: {user}, LLM: {llm_name}, Error: {error_message}")
+
+    def log(self, ip_address, user, llm_name, prompt, response):
+        """Legacy log method for backward compatibility."""
+        timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        self.logger.info(f"{timestamp} - {ip_address} - {user} - {llm_name} - {prompt} - {response}")

@@ -8,3 +8,7 @@ google.auth
 google-auth-oauthlib
 google-api-python-client
 msal
+websockets==10.4
+flask[async]
+hypercorn
+quart
