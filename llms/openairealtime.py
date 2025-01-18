@@ -26,6 +26,8 @@ class OpenaiRealtime:
         self.extra_messages = {}
         self.current_response = ""
         self.current_user = None
+        self.last_activity_time = None
+        self.SESSION_TIMEOUT = 55  # Set timeout to 55 seconds to be safe
         
         # WebSocket Configuration
         self.url = "wss://api.openai.com/v1/realtime"
@@ -65,6 +67,21 @@ class OpenaiRealtime:
             "temperature": 0.7
         }
 
+    async def check_session(self):
+        """Check if the session needs to be refreshed."""
+        if not self.ws:
+            return await self.connect()
+            
+        try:
+            # Test if connection is still alive
+            pong_waiter = await self.ws.ping()
+            await asyncio.wait_for(pong_waiter, timeout=5)
+            return
+        except Exception:
+            logger.info("Session disconnected, reconnecting...")
+            await self.cleanup()
+            return await self.connect()
+
     async def connect(self):
         """Connect to the WebSocket server."""
         logger.info(f"Connecting to WebSocket: {self.url}")
@@ -91,6 +108,12 @@ class OpenaiRealtime:
                 "session": self.session_config
             })
             logger.info("Session configuration sent")
+            self.last_activity_time = asyncio.get_event_loop().time()
+            
+            # Restore conversation if there is one
+            if self.current_user:
+                await self.restore_conversation(self.current_user)
+                
         except asyncio.TimeoutError:
             logger.error("Connection timed out after 30 seconds")
             raise Exception("WebSocket connection timed out")
@@ -108,11 +131,19 @@ class OpenaiRealtime:
 
     async def send_event(self, event):
         """Send an event to the WebSocket server."""
-        if self.ws:
+        if not self.ws:
+            await self.connect()
+        try:
             await self.ws.send(json.dumps(event))
             logger.debug(f"Event sent - type: {event['type']}")
-        else:
-            raise Exception("WebSocket connection not established")
+        except websockets.ConnectionClosed:
+            logger.info("Connection closed, reconnecting...")
+            await self.connect()
+            await self.ws.send(json.dumps(event))
+            logger.debug(f"Event resent - type: {event['type']}")
+        except Exception as e:
+            logger.error(f"Error sending event: {e}")
+            raise
 
     async def handle_event(self, event):
         """Handle incoming events from the WebSocket server."""
@@ -157,39 +188,61 @@ class OpenaiRealtime:
                     
         elif event_type == "response.function_call_arguments.done":
             # Handle function call
-            tool_args = json.loads(event["arguments"])
-            if event.get("name") == "generate_image":
-                response = self.image_gen_tool.image_generate(prompt=tool_args["prompt"])
-                self.extra_messages[self.current_user].append(
-                    f'<HR><i>Generating image using this prompt: {tool_args["prompt"]}</i>'
-                )
-                self.current_response += response
+            #tool_args = json.loads(event["arguments"])
+            #if event.get("name") == "generate_image":
+            #    response = self.image_gen_tool.image_generate(prompt=tool_args["prompt"])
+            #    self.extra_messages[self.current_user].append(
+            #        f'<HR><i>Generating image using this prompt: {tool_args["prompt"]}</i>'
+            #     )
+            response = await self.handle_tool(self.current_user, event)
+            self.current_response += response
         else:
             logger.debug(f"Unhandled event type: {event_type}")
+
+    async def handle_tool(self, user, tool):
+        """Handle tool calls asynchronously."""
+        tool_name = tool.get("name")
+        debug = True  # Set to True to print debug information
+        args = json.loads(tool["arguments"])
+
+        if tool_name == "generate_image":
+            self.extra_messages[user].append(f'<HR><i>Generating image using this prompt: {args["prompt"]}</i>')
+            results = self.image_gen_tool.image_generate(prompt=args['prompt'])
+        else:
+            results = "Tool not supported"
+
+        return results
 
     async def generate(self, user, prompt):
         """Generate a response using the Realtime API."""
         self.current_user = user
         self.current_response = ""
         
+        if user not in self.conversation_history:
+            self.conversation_history[user] = []
         if user not in self.extra_messages:
             self.extra_messages[user] = []
         
+        # Create message object
+        message = {
+            "type": "message",
+            "role": "user",
+            "content": [{
+                "type": "input_text",
+                "text": prompt
+            }]
+        }
+        
+        # Add to history
+        self.conversation_history[user].append(message)
+        
         try:
-            if not self.ws:
-                await self.connect()
+            await self.check_session()
             
             # Create a conversation item with the user's prompt
             await self.send_event({
                 "type": "conversation.item.create",
-                "item": {
-                    "type": "message",
-                    "role": "user",
-                    "content": [{
-                        "type": "input_text",
-                        "text": prompt
-                    }]
-                }
+                "item": message
             })
             logger.info("User message created")
             
@@ -205,10 +258,23 @@ class OpenaiRealtime:
                     
                     # If we've received a response.done event, we can stop listening
                     if event.get("type") == "response.done":
+                        # Store assistant's response in history
+                        if self.current_response:
+                            self.conversation_history[user].append({
+                                "type": "message",
+                                "role": "assistant",
+                                "content": [{
+                                    "type": "text",
+                                    "text": self.current_response
+                                }]
+                            })
                         break
                         
             except websockets.ConnectionClosed:
                 logger.error("WebSocket connection closed")
+                # Try to reconnect and resend the prompt
+                await self.check_session()
+                return await self.generate(user, prompt)
             
             return self.current_response
             
@@ -261,42 +327,14 @@ class OpenaiRealtime:
                 self.current_response = ""
                 logger.info("Cleanup completed")
 
-# Test cell
-if __name__ == "__main__":
-    import os
-    from dotenv import load_dotenv
-    
-    async def test_realtime_chat():
-        # Load API key from environment
-        load_dotenv()
-        api_key = os.getenv("OPENAI_API_KEY")
-        
-        if not api_key:
-            print("Error: OPENAI_API_KEY not found in environment variables")
+    async def restore_conversation(self, user):
+        """Restore conversation history for a user after reconnecting."""
+        if user not in self.conversation_history:
             return
             
-        # Initialize the realtime chat
-        chat = OpenaiRealtime(api_key)
-        
-        try:
-            # Test basic conversation
-            response = await chat.generate("test_user", "Hello! Can you help me test this connection?")
-            print("AI Response:", response)
-            
-            # Test image generation
-            response = await chat.generate("test_user", "Generate an image of a cute puppy")
-            print("AI Response (with image):", response)
-            
-            # Get any extra messages (like image generation notifications)
-            extra_messages = chat.get_extra_messages("test_user")
-            for msg in extra_messages:
-                print("Extra message:", msg)
-                
-        except Exception as e:
-            print(f"Error during test: {e}")
-        finally:
-            # Clean up
-            await chat.cleanup()
-
-    # Run the test
-    asyncio.run(test_realtime_chat()) 
+        for message in self.conversation_history[user]:
+            await self.send_event({
+                "type": "conversation.item.create",
+                "item": message
+            })
+            logger.debug(f"Restored message: {message['role']}")

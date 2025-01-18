@@ -14,6 +14,7 @@ from llms.azureorchestrator import AzureOrchestrator
 from llms.ollamaorchestrator import OllamaOrchestrator
 from llms.aohybridorchestrator import AOHybridOrchestrator
 from llms.openairealtime import OpenaiRealtime
+from llms.openairealorchestrator import OpenaiRealOrchestrator
 
 class LLMManager:
     def __init__(self, config_path='llm_config.json'):
@@ -85,7 +86,7 @@ class LLMManager:
             self.llm_links[name] = params['info_link']
             
             # Track if this is an async LLM
-            if class_name == "OpenaiRealtime":
+            if class_name in ["OpenaiRealtime", "OpenaiRealOrchestrator"]:
                 self.async_llms.add(name)
 
     async def get_llm_response(self, llm_name, user, prompt):

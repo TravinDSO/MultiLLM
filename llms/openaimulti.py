@@ -76,24 +76,39 @@ class OpenaiMulti():
             'content': prompt
         })
 
-        try:
-            response = ''
-            completion = self.client.chat.completions.create(
-                model=self.model,
-                messages=self.conversation_history[user],
-                max_tokens=4000,
-                temperature=0.7,
-                top_p=0.95,
-                frequency_penalty=0,
-                presence_penalty=0,
-                stop=None,
-                stream=False
-            )
-            response = completion.choices[0].message.content
-            return response
-        except Exception as e:
-            print(f'Could not process direct prompt to OpenAI: {e}')
-            return f'Could not process direct prompt to OpenAI: {e}'
+        if self.model == 'o1-preview':
+            try:
+                response = ''
+                completion = self.client.chat.completions.create(
+                    model=self.model,
+                    messages=self.conversation_history[user],
+                    max_completion_tokens=4000,
+                    stream=False
+                )
+                response = completion.choices[0].message.content
+                return response
+            except Exception as e:
+                print(f'Could not process direct prompt to OpenAI: {e}')
+                return f'Could not process direct prompt to OpenAI: {e}'
+        else:
+            try:
+                response = ''
+                completion = self.client.chat.completions.create(
+                    model=self.model,
+                    messages=self.conversation_history[user],
+                    max_tokens=4000,
+                    temperature=0.7,
+                    top_p=0.95,
+                    frequency_penalty=0,
+                    presence_penalty=0,
+                    stop=None,
+                    stream=False
+                )
+                response = completion.choices[0].message.content
+                return response
+            except Exception as e:
+                print(f'Could not process direct prompt to OpenAI: {e}')
+                return f'Could not process direct prompt to OpenAI: {e}'
 
     def assistant_generate(self, user, prompt):
         # Check if the user has an Azure OpenAI ASSISTANT and create one if not
