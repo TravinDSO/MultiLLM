@@ -135,7 +135,7 @@ class OpenaiRealOrchestrator(OpenaiRealtime):
             {
                 "type": "function",
                 "name": "agent_researcher",
-                "description": "Use the Claude API as a researcher and analyist to check facts, provide information and feedback to improve your response.",
+                "description": "Use the OpenAI API as a researcher and analyist to check facts, provide information and feedback to improve your response.",
                 "parameters": {
                     "type": "object",
                     "properties": {

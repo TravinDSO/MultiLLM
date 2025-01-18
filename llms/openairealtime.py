@@ -187,13 +187,6 @@ class OpenaiRealtime:
                                  f"(resets in {limit['reset_seconds']} seconds)")
                     
         elif event_type == "response.function_call_arguments.done":
-            # Handle function call
-            #tool_args = json.loads(event["arguments"])
-            #if event.get("name") == "generate_image":
-            #    response = self.image_gen_tool.image_generate(prompt=tool_args["prompt"])
-            #    self.extra_messages[self.current_user].append(
-            #        f'<HR><i>Generating image using this prompt: {tool_args["prompt"]}</i>'
-            #     )
             response = await self.handle_tool(self.current_user, event)
             self.current_response += response
         else:
