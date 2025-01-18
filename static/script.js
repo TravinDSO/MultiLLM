@@ -355,3 +355,30 @@ document.addEventListener('DOMContentLoaded', function() {
         pollExtraMessages(llmId);
     });
 });
+
+function confirmShutdown() {
+    if (confirm('Are you sure you want to shutdown the server? This will terminate all active sessions.')) {
+        fetch('/shutdown', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                alert('Server is shutting down...');
+                // Redirect to login after a short delay
+                setTimeout(() => {
+                    window.location.href = '/';
+                }, 1000);
+            } else {
+                alert('Error shutting down server: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error shutting down server');
+        });
+    }
+}

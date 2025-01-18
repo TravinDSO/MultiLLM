@@ -10,9 +10,18 @@
 </head>
 <body>
     <div id="header" class="header-container hidden">
-        <h1>Multi-LLM [ {{username}} ]</h1><br>
-        <i>Note: Local models should not be queried at the same time in order to conserve GPU resources.</i>
-        <button id="logout-button" onclick="logout()">Logout</button>
+        <div class="header-content">
+            <h1>Multi-LLM [ {{username}} ]</h1>
+            <div class="header-note">
+                <i>Note: Local models should not be queried at the same time in order to conserve GPU resources.</i>
+            </div>
+        </div>
+        <div class="header-buttons">
+            <button id="logout-button" onclick="logout()">Logout</button>
+            {% if is_admin %}
+            <button id="shutdown-button" onclick="confirmShutdown()" class="shutdown-button">Shutdown Server</button>
+            {% endif %}
+        </div>
     </div>
 
     <div id="main-content">

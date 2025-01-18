@@ -1,19 +1,22 @@
 {
   "users": [
     {
+      "username": "admin",
+      "password": "admin_password",
+      "authorized_llms": ["Openai GPT4o", "Azure GPT4o", "Claude 3.5", "Ollama Orchestrator", "Llama 3.1 (local)", "Azure Orchestrator", "Openai Orchestrator", "Openai Realtime"],
+      "type": "admin"
+    },
+    {
       "username": "user",
       "password": "password",
-      "authorized_llms": ["Openai GPT4o", "Azure GPT4o", "Claude 3.5"]
+      "authorized_llms": ["Openai GPT4o", "Azure GPT4o", "Claude 3.5"],
+      "type": "user"
     },
     {
-      "username": "user2",
-      "password": "password2",
-      "authorized_llms": ["Ollama Orchestrator", "Llama 3.1 (local)"]
-    },
-    {
-      "username": "user3",
-      "password": "password3",
-      "authorized_llms": ["Azure Orchestrator", "Openai Orchestrator"]
+      "username": "local_user",
+      "password": "local_password",
+      "authorized_llms": ["Ollama Orchestrator", "Llama 3.1 (local)"],
+      "type": "user"
     }
   ]
 }

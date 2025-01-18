@@ -20,15 +20,37 @@ a:hover, a:active {
 .header-container {
     display: flex;
     justify-content: space-between;
-    align-items: center;
+    align-items: flex-start;
     padding: 10px 20px;
     background-color: #333;
     color: white;
+    position: relative;
 }
 
-.header-container h1 {
+.header-content {
+    flex: 1;
+    padding-right: 200px; /* Make space for buttons */
+}
+
+.header-content h1 {
     margin: 0;
     font-size: 24px;
+    margin-bottom: 5px;
+}
+
+.header-note {
+    font-size: 14px;
+    opacity: 0.9;
+}
+
+.header-buttons {
+    position: absolute;
+    top: 50%;
+    right: 20px;
+    transform: translateY(-50%);
+    display: flex;
+    gap: 10px;
+    white-space: nowrap;
 }
 
 #logout-button {
@@ -40,7 +62,6 @@ a:hover, a:active {
     text-decoration: none;
     display: inline-block;
     font-size: 14px;
-    margin: 4px 2px;
     cursor: pointer;
     border-radius: 4px;
 }
@@ -190,4 +211,18 @@ pre {
 code {
     font-family: "Courier New", Courier, monospace;
     font-size: 14px;
+}
+
+.shutdown-button {
+    background-color: #dc3545;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.shutdown-button:hover {
+    background-color: #c82333;
 }

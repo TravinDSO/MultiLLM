@@ -1,5 +1,6 @@
 import os
 import logging
+import signal
 from dotenv import load_dotenv
 from quart import Quart, render_template, request, jsonify, session, redirect, url_for
 from llm_manager import LLMManager
@@ -13,6 +14,10 @@ from hypercorn.asyncio import serve
 #load the env file
 load_dotenv('environment.env', override=True)
 
+# Configure logging
+logging.getLogger("httpx").setLevel(logging.WARNING)
+logging.getLogger("httpcore").setLevel(logging.WARNING)
+
 app = Quart(__name__)
 app.secret_key = os.getenv('SECRET_KEY')
 app.debug = False
@@ -22,6 +27,63 @@ llm_logger = Logger()
 # Set the log level to WARNING to suppress HTTP request logs
 log = logging.getLogger('werkzeug')
 log.setLevel(logging.WARNING)
+
+# Global flag to track shutdown state
+is_shutting_down = False
+
+async def cleanup():
+    """Cleanup function to be called during shutdown"""
+    global is_shutting_down
+    is_shutting_down = True
+    
+    print("Starting cleanup process...")
+    
+    # Clean up each LLM instance
+    for llm_name, llm in llm_manager.llms.items():
+        try:
+            # Handle async cleanup for realtime LLMs
+            if llm_name in llm_manager.async_llms:
+                if hasattr(llm, 'cleanup'):
+                    try:
+                        # Create a new event loop for cleanup if needed
+                        if not asyncio.get_event_loop().is_running():
+                            loop = asyncio.new_event_loop()
+                            asyncio.set_event_loop(loop)
+                        await asyncio.wait_for(llm.cleanup(), timeout=5.0)
+                    except asyncio.TimeoutError:
+                        print(f"Timeout while cleaning up {llm_name}")
+                    except Exception as e:
+                        print(f"Error during WebSocket cleanup for {llm_name}: {e}")
+            
+            # Handle cleanup for assistants
+            if hasattr(llm, 'clear_conversation'):
+                for user in llm_manager._get_active_users():
+                    try:
+                        if asyncio.iscoroutinefunction(llm.clear_conversation):
+                            await llm.clear_conversation(user)
+                        else:
+                            llm.clear_conversation(user)
+                    except Exception as e:
+                        print(f"Error cleaning up conversation for {user} in {llm_name}: {e}")
+        except Exception as e:
+            print(f"Error cleaning up {llm_name}: {e}")
+    
+    # Clean up assistants
+    llm_manager._cleanup_assistants()
+    
+    # Clear any remaining pickle files
+    clear_outlook_pickles()
+    
+    print("Cleanup completed")
+
+def handle_shutdown(signum, frame):
+    """Signal handler for shutdown signals"""
+    print(f"Received signal {signum}")
+    # Schedule the cleanup
+    loop = asyncio.get_event_loop()
+    loop.create_task(cleanup())
+    # Stop the event loop after cleanup
+    loop.stop()
 
 def load_users():
     with open('users.json') as f:
@@ -46,12 +108,13 @@ async def index():
         user = get_user_by_username(session['username'])
         if user:
             llms = [llm for llm in llms if llm in user['authorized_llms']]
+            is_admin = user.get('type') == 'admin'
 
         llm_links = llm_manager.get_llm_links()
         #capitalize the first letter of the username
         username = session['username'].capitalize()
-        return await render_template('index.html', llms=llms, llm_links=llm_links, username=username)
-    return await render_template('index.html', llms=[], llm_links={})
+        return await render_template('index.html', llms=llms, llm_links=llm_links, username=username, is_admin=is_admin)
+    return await render_template('index.html', llms=[], llm_links={}, is_admin=False)
 
 @app.route('/get_authorized_llms', methods=['POST'])
 async def get_authorized_llms():
@@ -172,6 +235,30 @@ async def clear_thread():
         print(e)
         return jsonify({'status': 'error', 'message': 'Error clearing thread'}), 500
 
+@app.route('/shutdown', methods=['POST'])
+async def shutdown():
+    # Only allow admin users to shutdown
+    user = get_user_by_username(session.get('username', ''))
+    if not user or user.get('type') != 'admin':
+        return jsonify({'status': 'error', 'message': 'Unauthorized'}), 403
+        
+    print("Shutdown requested by admin user")
+    
+    # Run cleanup
+    await cleanup()
+    
+    # Get the event loop and schedule shutdown
+    loop = asyncio.get_event_loop()
+    
+    # Schedule the server to stop
+    def stop_server():
+        loop.stop()
+        os._exit(0)  # Force exit after cleanup
+    
+    loop.call_later(1, stop_server)
+    
+    return jsonify({'status': 'success'})
+
 if __name__ == '__main__':
     APP_IP = os.getenv('APP_IP', '127.0.0.1')
     
@@ -185,11 +272,22 @@ if __name__ == '__main__':
     # Clear out any Outlook pickles that may be present
     clear_outlook_pickles()
 
+    # Register signal handlers
+    signal.signal(signal.SIGINT, handle_shutdown)
+    signal.signal(signal.SIGTERM, handle_shutdown)
+    
     # Configure Hypercorn
     config = Config()
     config.bind = [f"{APP_IP}:{APP_PORT}"]
+    config.graceful_timeout = 10.0  # Give 10 seconds for graceful shutdown
     
     print(f"Running on http://{config.bind[0]}")
     
-    # Run the async server
-    asyncio.run(serve(app, config))
+    # Run the async server with cleanup on shutdown
+    try:
+        asyncio.run(serve(app, config))
+    except KeyboardInterrupt:
+        print("Received keyboard interrupt")
+    finally:
+        # Ensure cleanup runs
+        asyncio.run(cleanup())

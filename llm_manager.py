@@ -111,3 +111,22 @@ class LLMManager:
 
     def get_llm_links(self):
         return self.llm_links
+
+    def _get_active_users(self):
+        """Get a set of all active users across all LLMs"""
+        active_users = set()
+        
+        for llm in self.llms.values():
+            # Check conversation history
+            if hasattr(llm, 'conversation_history'):
+                active_users.update(llm.conversation_history.keys())
+            
+            # Check assistant threads
+            if hasattr(llm, 'openai_assistant_thread'):
+                active_users.update(llm.openai_assistant_thread.keys())
+                
+            # Check Azure assistant threads
+            if hasattr(llm, 'azure_assistant_thread'):
+                active_users.update(llm.azure_assistant_thread.keys())
+                
+        return active_users
