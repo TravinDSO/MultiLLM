@@ -367,7 +367,6 @@ function confirmShutdown() {
         .then(response => response.json())
         .then(data => {
             if (data.status === 'success') {
-                alert('Server is shutting down...');
                 // Redirect to login after a short delay
                 setTimeout(() => {
                     window.location.href = '/';
