@@ -363,8 +363,8 @@ if __name__ == "__main__":
     # else:
     #     print('No upcoming events found.')
 
-    room_email = "copernicus@cvent.com"
-    person_email = "m.nelson@cvent.com"
+    room_email = ""
+    person_email = ""
     start_time = datetime.now().isoformat()
     end_time = (datetime.now() + timedelta(hours=200)).isoformat()
 
